@@ -1,116 +1,40 @@
 import json
 import logging
 import re
-import httpx
 from typing import Dict, Any, List, Optional
-from app.config import settings
+from sqlalchemy.orm import Session
+
+from app.database import SessionLocal
+from app.services.key_pool_service import key_pool_service
 
 logger = logging.getLogger(__name__)
 
-# Predefined provider presets
-PROVIDER_PRESETS = {
-    "groq": {
-        "base_url": "https://api.groq.com/openai/v1",
-        "default_model": "llama-3.3-70b-versatile"
-    },
-    "openrouter": {
-        "base_url": "https://openrouter.ai/api/v1",
-        "default_model": "meta-llama/llama-3.3-70b-instruct:free"
-    },
-    "mistral": {
-        "base_url": "https://api.mistral.ai/v1",
-        "default_model": "mistral-small-latest"
-    },
-    "cerebras": {
-        "base_url": "https://api.cerebras.ai/v1",
-        "default_model": "llama3.1-8b"
-    },
-    "gemini": {
-        "base_url": "",
-        "default_model": "gemini-2.5-flash"
-    }
-}
-
 class AIService:
-    def __init__(self):
-        self._gemini_client = None
-
-    def _get_api_key(self) -> str:
-        return (settings.AI_API_KEY or settings.GEMINI_API_KEY or "").strip()
-
-    def _get_provider(self) -> str:
-        provider = (settings.AI_PROVIDER or "gemini").lower().strip()
-        return provider
-
-    def _get_model_and_url(self):
-        provider = self._get_provider()
-        preset = PROVIDER_PRESETS.get(provider, {})
-        base_url = settings.AI_BASE_URL.strip() if settings.AI_BASE_URL else preset.get("base_url", "")
-        model = settings.AI_MODEL.strip() if settings.AI_MODEL else preset.get("default_model", "llama-3.3-70b-versatile")
-        return provider, base_url, model
-
-    def _call_llm(self, prompt: str) -> Optional[str]:
+    def _call_llm_with_pool(self, prompt: str, db: Optional[Session] = None) -> Optional[str]:
         """
-        Unified LLM invoker supporting Gemini, Groq, OpenRouter, Mistral, Cerebras, and OpenAI-compatible endpoints.
+        Executes prompt via KeyPoolService with round-robin load balancing,
+        rate-limit detection, and instant failover across all stored keys.
         """
-        api_key = self._get_api_key()
-        if not api_key:
-            return None
-
-        provider, base_url, model = self._get_model_and_url()
-
-        # Google Gemini via official SDK
-        if provider == "gemini":
+        if db is not None:
+            text, used_key = key_pool_service.call_with_failover(prompt, db)
+            return text
+        else:
+            session = SessionLocal()
             try:
-                if self._gemini_client is None:
-                    from google import genai
-                    self._gemini_client = genai.Client(api_key=api_key)
-                
-                resp = self._gemini_client.models.generate_content(
-                    model=model or "gemini-2.5-flash",
-                    contents=prompt
-                )
-                return resp.text.strip()
-            except Exception as e:
-                logger.warning(f"Gemini API call error: {e}")
-                return None
+                text, used_key = key_pool_service.call_with_failover(prompt, session)
+                return text
+            finally:
+                session.close()
 
-        # OpenAI-compatible providers: Groq, OpenRouter, Mistral, Cerebras, Custom
-        try:
-            target_url = f"{base_url.rstrip('/')}/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            if provider == "openrouter":
-                headers["HTTP-Referer"] = "http://localhost:8000"
-                headers["X-Title"] = "JobPulse AI"
-
-            payload = {
-                "model": model,
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.3
-            }
-
-            with httpx.Client(timeout=30.0) as client:
-                res = client.post(target_url, headers=headers, json=payload)
-                if res.status_code != 200:
-                    logger.warning(f"{provider.upper()} API returned status {res.status_code}: {res.text[:300]}")
-                    return None
-                
-                data = res.json()
-                choices = data.get("choices", [])
-                if choices and len(choices) > 0:
-                    msg = choices[0].get("message", {})
-                    return msg.get("content", "").strip()
-        except Exception as e:
-            logger.warning(f"Error calling {provider.upper()} API: {e}")
-
-        return None
-
-    def score_and_match(self, job_title: str, job_description: str, profile_summary: str, skills_str: str, resume_text: str) -> Dict[str, Any]:
+    def score_and_match(
+        self,
+        job_title: str,
+        job_description: str,
+        profile_summary: str,
+        skills_str: str,
+        resume_text: str,
+        db: Optional[Session] = None
+    ) -> Dict[str, Any]:
         """
         Calculates match score (0-100), matching skills, missing keywords, and match reasoning.
         """
@@ -138,7 +62,7 @@ Return ONLY a valid JSON object matching this exact schema:
 }}
 Do not include markdown codeblocks or extra text.
 """
-        response_text = self._call_llm(prompt)
+        response_text = self._call_llm_with_pool(prompt, db=db)
         if response_text:
             try:
                 clean_text = response_text.strip()
@@ -197,7 +121,17 @@ Do not include markdown codeblocks or extra text.
             "missing_keywords": missing[:5]
         }
 
-    def generate_cover_letter(self, job_title: str, company: str, job_description: str, candidate_name: str, profile_summary: str, skills_str: str, resume_text: str) -> str:
+    def generate_cover_letter(
+        self,
+        job_title: str,
+        company: str,
+        job_description: str,
+        candidate_name: str,
+        profile_summary: str,
+        skills_str: str,
+        resume_text: str,
+        db: Optional[Session] = None
+    ) -> str:
         prompt = f"""
 Write a professional, compelling, and concise cover letter (3-4 focused paragraphs, under 300 words) for the following job application.
 
@@ -220,7 +154,7 @@ TONE & STYLE:
 - Avoid generic buzzwords.
 - Do not use placeholders like '[Insert Date]' or '[Company Address]'. Start directly with 'Dear Hiring Team at {company},' and end with 'Sincerely,\n{candidate_name or "Applicant"}'.
 """
-        response_text = self._call_llm(prompt)
+        response_text = self._call_llm_with_pool(prompt, db=db)
         if response_text:
             return response_text.strip()
 
@@ -238,7 +172,12 @@ Thank you for your time and consideration. I welcome the opportunity to discuss 
 Sincerely,
 {name}"""
 
-    def answer_screening_questions(self, questions: List[str], profile_dict: Dict[str, Any]) -> Dict[str, str]:
+    def answer_screening_questions(
+        self,
+        questions: List[str],
+        profile_dict: Dict[str, Any],
+        db: Optional[Session] = None
+    ) -> Dict[str, str]:
         results = {}
         if not questions:
             return results
@@ -261,7 +200,7 @@ QUESTIONS:
 Return a JSON mapping of each question string to the candidate's concise answer. Format:
 {{"Question text": "Concise answer"}}
 """
-        response_text = self._call_llm(prompt)
+        response_text = self._call_llm_with_pool(prompt, db=db)
         if response_text:
             try:
                 clean_text = response_text.strip()

@@ -90,3 +90,25 @@ class ConnectorSetting(Base):
     last_synced_at = Column(DateTime, nullable=True)
     last_error = Column(Text, default="")
 
+class AIKey(Base):
+    __tablename__ = "ai_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    label = Column(String(150), default="Primary Key")
+    provider = Column(String(50), nullable=False) # groq, openrouter, gemini, mistral, cerebras, custom
+    api_key = Column(String(500), nullable=False)
+    model = Column(String(150), default="")
+    base_url = Column(String(300), default="")
+    
+    enabled = Column(Boolean, default=True)
+    is_in_cooldown = Column(Boolean, default=False)
+    cooldown_until = Column(DateTime, nullable=True)
+    
+    total_requests = Column(Integer, default=0)
+    successful_requests = Column(Integer, default=0)
+    rate_limit_hits = Column(Integer, default=0)
+    last_error_message = Column(Text, default="")
+    last_used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+

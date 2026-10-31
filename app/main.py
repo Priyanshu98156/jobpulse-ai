@@ -14,11 +14,12 @@ from pydantic import BaseModel
 
 from app.config import settings, BASE_DIR, UPLOADS_DIR
 from app.database import engine, get_db, Base
-from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting
+from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, AIKey
 from app.connectors.manager import connector_manager
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.resume_service import resume_service
 from app.services.ai_service import ai_service
+from app.services.key_pool_service import key_pool_service, PROVIDER_PRESETS
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -238,17 +239,22 @@ async def settings_page(request: Request, message: Optional[str] = None, db: Ses
             "has_submit_api": has_submit_api
         })
 
+    # Query and sync key pool
+    key_pool_service.get_healthy_keys(db)
+    ai_keys = db.query(AIKey).order_by(AIKey.id.desc()).all()
+
     return templates.TemplateResponse(
         request=request,
         name="settings.html",
         context={
             "active_page": "settings",
             "connectors": enriched_connectors,
+            "ai_keys": ai_keys,
             "ai_provider": settings.AI_PROVIDER,
             "ai_api_key": settings.AI_API_KEY,
             "ai_model": settings.AI_MODEL,
             "ai_base_url": settings.AI_BASE_URL,
-            "ai_key_set": bool(settings.AI_API_KEY or settings.GEMINI_API_KEY),
+            "ai_key_set": len(ai_keys) > 0 or bool(settings.AI_API_KEY or settings.GEMINI_API_KEY),
             "gemini_api_key": settings.GEMINI_API_KEY,
             "adzuna_app_id": settings.ADZUNA_APP_ID,
             "adzuna_app_key": settings.ADZUNA_APP_KEY,
@@ -502,3 +508,78 @@ async def regenerate_cover_letter(job_id: int, db: Session = Depends(get_db)):
         db.commit()
 
     return {"status": "ok", "cover_letter": cover_letter}
+
+# --- Key Pool API Endpoints ---
+
+class AddKeyRequest(BaseModel):
+    label: str
+    provider: str
+    api_key: str
+    model: Optional[str] = ""
+    base_url: Optional[str] = ""
+
+@app.post("/api/keys")
+async def add_ai_key(req: AddKeyRequest, db: Session = Depends(get_db)):
+    """Add a new API key to the AI Key Pool."""
+    if not req.api_key.strip():
+        raise HTTPException(status_code=400, detail="API Key cannot be empty.")
+
+    prov = req.provider.lower().strip()
+    preset = PROVIDER_PRESETS.get(prov, {})
+    model = req.model.strip() if req.model else preset.get("default_model", "llama-3.3-70b-versatile")
+    base_url = req.base_url.strip() if req.base_url else preset.get("base_url", "")
+
+    new_key = AIKey(
+        label=req.label.strip() or f"{prov.title()} Key",
+        provider=prov,
+        api_key=req.api_key.strip(),
+        model=model,
+        base_url=base_url,
+        enabled=True
+    )
+    db.add(new_key)
+    db.commit()
+    db.refresh(new_key)
+    return {"status": "ok", "message": f"Added {new_key.label} to AI Key Pool!", "key_id": new_key.id}
+
+@app.delete("/api/keys/{key_id}")
+async def delete_ai_key(key_id: int, db: Session = Depends(get_db)):
+    """Delete an API key from the pool."""
+    key = db.query(AIKey).filter(AIKey.id == key_id).first()
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found.")
+    db.delete(key)
+    db.commit()
+    return {"status": "ok", "message": "Key removed from pool."}
+
+@app.post("/api/keys/{key_id}/toggle")
+async def toggle_ai_key(key_id: int, db: Session = Depends(get_db)):
+    """Toggle enabled/disabled state of a key."""
+    key = db.query(AIKey).filter(AIKey.id == key_id).first()
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found.")
+    key.enabled = not key.enabled
+    db.commit()
+    return {"status": "ok", "enabled": key.enabled}
+
+@app.post("/api/keys/{key_id}/reset-cooldown")
+async def reset_key_cooldown(key_id: int, db: Session = Depends(get_db)):
+    """Manually clear cooldown for a rate-limited key."""
+    key = db.query(AIKey).filter(AIKey.id == key_id).first()
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found.")
+    key.is_in_cooldown = False
+    key.cooldown_until = None
+    key.last_error_message = ""
+    db.commit()
+    return {"status": "ok", "message": f"Cooldown reset for {key.label}."}
+
+@app.post("/api/keys/{key_id}/test")
+async def test_ai_key(key_id: int, db: Session = Depends(get_db)):
+    """Ping provider endpoint to test key latency and validity."""
+    key = db.query(AIKey).filter(AIKey.id == key_id).first()
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found.")
+    result = key_pool_service.test_key(key)
+    return result
+

@@ -3,10 +3,10 @@
 {% block title %}Connectors & Settings - JobPulse AI{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-5xl mx-auto space-y-6">
     <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Connectors &amp; Engine Settings</h1>
-        <p class="text-xs text-slate-500 mt-1">Manage API connections, background worker scheduling, and platform connectors.</p>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">AI Key Pool &amp; Connector Settings</h1>
+        <p class="text-xs text-slate-500 mt-1">Manage multiple AI keys with automatic quota failover, round-robin load balancing, and platform connectors.</p>
     </div>
 
     {% if message %}
@@ -16,116 +16,137 @@
     </div>
     {% endif %}
 
-    <form method="POST" action="/settings" class="space-y-6">
-        <!-- AI & API Keys -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <h2 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i> AI Provider &amp; Model Credentials
-            </h2>
-
-            <div class="space-y-4 text-xs">
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Select AI Provider</label>
-                    <select name="ai_provider" id="aiProviderSelect" onchange="updateProviderPreset()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium">
-                        <option value="groq" {% if ai_provider == 'groq' %}selected{% endif %}>⚡ Groq (Ultra-Fast &amp; 100% Free - Llama 3.3 70B)</option>
-                        <option value="openrouter" {% if ai_provider == 'openrouter' %}selected{% endif %}>🌐 OpenRouter (Free Tier - Llama 3, DeepSeek R1, Mistral)</option>
-                        <option value="gemini" {% if ai_provider == 'gemini' or not ai_provider %}selected{% endif %}>✨ Google Gemini (Free Tier - Gemini 2.5 Flash)</option>
-                        <option value="mistral" {% if ai_provider == 'mistral' %}selected{% endif %}>🇫🇷 Mistral AI (Free Experiment Tier - Mistral Small)</option>
-                        <option value="cerebras" {% if ai_provider == 'cerebras' %}selected{% endif %}>⚡ Cerebras (High-Throughput Free Tier - Llama 3.1)</option>
-                        <option value="custom" {% if ai_provider == 'custom' %}selected{% endif %}>🛠 Custom / Local (Ollama or OpenAI Compatible)</option>
-                    </select>
+    <!-- MULTI-KEY AI POOL MANAGER -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-indigo-600"></i> Multi-Key AI Pool
+                    </h2>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <i class="fa-solid fa-arrows-spin mr-1"></i>Round-Robin Load Balanced
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <i class="fa-solid fa-shield-halved mr-1"></i>Auto-Failover Active
+                    </span>
                 </div>
-
-                <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="font-semibold text-slate-700">API Key</label>
-                        {% if ai_key_set %}
-                        <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            <i class="fa-solid fa-circle-check mr-1"></i>Key Configured
-                        </span>
-                        {% else %}
-                        <span class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                            <i class="fa-solid fa-circle-exclamation mr-1"></i>Using Heuristic Fallback (Free Local)
-                        </span>
-                        {% endif %}
-                    </div>
-                    <input type="password" name="ai_api_key" id="aiApiKey" value="{{ ai_api_key or '' }}" placeholder="Paste your API key here..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
-                    <p class="text-[11px] text-slate-400 mt-1" id="providerHelp">Get a free key instantly from the provider's developer console (no credit card required).</p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Model Name / ID</label>
-                        <input type="text" name="ai_model" id="aiModel" value="{{ ai_model or '' }}" placeholder="e.g. llama-3.3-70b-versatile" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">API Base URL (for OpenAI-compatible)</label>
-                        <input type="text" name="ai_base_url" id="aiBaseUrl" value="{{ ai_base_url or '' }}" placeholder="e.g. https://api.groq.com/openai/v1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Adzuna App ID (Optional)</label>
-                        <input type="text" name="adzuna_app_id" value="{{ adzuna_app_id or '' }}" placeholder="e.g. 1a2b3c4d" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Adzuna App Key (Optional)</label>
-                        <input type="password" name="adzuna_app_key" value="{{ adzuna_app_key or '' }}" placeholder="e.g. 9f8e7d..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
-                    </div>
-                </div>
+                <p class="text-[11px] text-slate-500">Store multiple keys across Groq, OpenRouter, Gemini, Mistral, and Cerebras. If any key hits a rate limit (HTTP 429), it auto-cooldowns and instantly switches to the next healthy key.</p>
             </div>
+            
+            <button type="button" onclick="openAddKeyModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition-all inline-flex items-center gap-1.5 self-start sm:self-auto">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Key to Pool</span>
+            </button>
         </div>
 
-        <script>
-            const PRESETS = {
-                groq: {
-                    url: 'https://api.groq.com/openai/v1',
-                    model: 'llama-3.3-70b-versatile',
-                    help: 'Free keys at console.groq.com - Blazing fast LPU inference, no credit card needed.'
-                },
-                openrouter: {
-                    url: 'https://openrouter.ai/api/v1',
-                    model: 'meta-llama/llama-3.3-70b-instruct:free',
-                    help: 'Free keys at openrouter.ai/keys - Access 28+ free models ending in :free.'
-                },
-                gemini: {
-                    url: '',
-                    model: 'gemini-2.5-flash',
-                    help: 'Free keys at aistudio.google.com/app/apikey - High token limits, no credit card required.'
-                },
-                mistral: {
-                    url: 'https://api.mistral.ai/v1',
-                    model: 'mistral-small-latest',
-                    help: 'Free keys at console.mistral.ai - Experiment tier provides free access for prototyping.'
-                },
-                cerebras: {
-                    url: 'https://api.cerebras.ai/v1',
-                    model: 'llama3.1-8b',
-                    help: 'Free keys at cloud.cerebras.ai - Wafer-scale engine with high token throughput.'
-                },
-                custom: {
-                    url: 'http://localhost:11434/v1',
-                    model: 'llama3',
-                    help: 'Connect to local Ollama (http://localhost:11434/v1) or any OpenAI-compatible server.'
-                }
-            };
+        <!-- Key List / Table -->
+        {% if ai_keys and ai_keys|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+                        <th class="py-2.5 px-3">Provider &amp; Label</th>
+                        <th class="py-2.5 px-3">Model</th>
+                        <th class="py-2.5 px-3">Key Token</th>
+                        <th class="py-2.5 px-3">Status</th>
+                        <th class="py-2.5 px-3">Requests / Rate Hits</th>
+                        <th class="py-2.5 px-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for k in ai_keys %}
+                    <tr class="hover:bg-slate-50/70 transition-colors" id="key-row-{{ k.id }}">
+                        <td class="py-3 px-3">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded font-bold text-[10px] uppercase
+                                    {% if k.provider == 'groq' %}bg-orange-100 text-orange-800 border border-orange-200
+                                    {% elif k.provider == 'openrouter' %}bg-blue-100 text-blue-800 border border-blue-200
+                                    {% elif k.provider == 'gemini' %}bg-emerald-100 text-emerald-800 border border-emerald-200
+                                    {% elif k.provider == 'mistral' %}bg-amber-100 text-amber-800 border border-amber-200
+                                    {% elif k.provider == 'cerebras' %}bg-purple-100 text-purple-800 border border-purple-200
+                                    {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                    {{ k.provider }}
+                                </span>
+                                <span class="font-bold text-slate-800">{{ k.label }}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 font-mono text-[11px] text-slate-600">{{ k.model or 'default' }}</td>
+                        <td class="py-3 px-3 font-mono text-[11px] text-slate-500">
+                            {% if k.api_key|length > 10 %}
+                                {{ k.api_key[:4] }}••••••••{{ k.api_key[-4:] }}
+                            {% else %}
+                                ••••••••
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3">
+                            {% if not k.enabled %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                <i class="fa-solid fa-ban mr-1"></i>Disabled
+                            </span>
+                            {% elif k.is_in_cooldown %}
+                            <div class="space-y-0.5">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-hourglass-half"></i> In Cooldown
+                                </span>
+                                {% if k.cooldown_until %}
+                                <p class="text-[10px] text-amber-700">Until {{ k.cooldown_until.strftime('%H:%M:%S') }}</p>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <i class="fa-solid fa-circle-check mr-1"></i>Healthy
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-slate-600 text-[11px]">
+                            <span class="font-semibold text-slate-900">{{ k.successful_requests }}</span> / {{ k.total_requests }} calls
+                            {% if k.rate_limit_hits > 0 %}
+                            <span class="text-amber-600 font-bold ml-1">({{ k.rate_limit_hits }} limits)</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-right">
+                            <div class="inline-flex items-center gap-1.5">
+                                <button type="button" onclick="testKey({{ k.id }})" id="test-btn-{{ k.id }}" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-semibold transition-colors" title="Test Key Validity & Latency">
+                                    <i class="fa-solid fa-bolt mr-1"></i>Test
+                                </button>
+                                {% if k.is_in_cooldown %}
+                                <button type="button" onclick="resetKeyCooldown({{ k.id }})" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[11px] font-semibold transition-colors" title="Clear Cooldown Early">
+                                    <i class="fa-solid fa-rotate-left mr-1"></i>Reset
+                                </button>
+                                {% endif %}
+                                <button type="button" onclick="toggleKey({{ k.id }})" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-medium transition-colors" title="Toggle On/Off">
+                                    <i class="fa-solid {% if k.enabled %}fa-toggle-on text-indigo-600{% else %}fa-toggle-off text-slate-400{% endif %} text-sm"></i>
+                                </button>
+                                <button type="button" onclick="deleteKey({{ k.id }})" class="px-2 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 rounded-lg text-[11px] transition-colors" title="Delete Key">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-3">
+            <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-lg">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <div class="space-y-1">
+                <p class="font-bold text-slate-900 text-xs">No keys configured in the pool yet</p>
+                <p class="text-[11px] text-slate-500">Currently using built-in rule-based heuristic matching. Click <strong>Add Key to Pool</strong> to add free keys from Groq, OpenRouter, or Gemini.</p>
+            </div>
+            <button type="button" onclick="openAddKeyModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Your First Free Key</span>
+            </button>
+        </div>
+        {% endif %}
+    </div>
 
-            function updateProviderPreset() {
-                const select = document.getElementById('aiProviderSelect');
-                const preset = PRESETS[select.value];
-                if (preset) {
-                    const urlInput = document.getElementById('aiBaseUrl');
-                    const modelInput = document.getElementById('aiModel');
-                    const helpText = document.getElementById('providerHelp');
-
-                    urlInput.value = preset.url;
-                    modelInput.value = preset.model;
-                    helpText.innerText = preset.help;
-                }
-            }
-        </script>
-
+    <!-- MAIN CONFIGURATION FORM -->
+    <form method="POST" action="/settings" class="space-y-6">
         <!-- Automation & Scheduler Settings -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
             <h2 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
@@ -148,6 +169,18 @@
                     <label class="block font-semibold text-slate-700 mb-1">Desktop Toast Score Threshold</label>
                     <input type="number" name="notification_min_score" value="{{ notification_min_score }}" min="50" max="100" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
                     <p class="text-[11px] text-slate-400 mt-1">Triggers Windows notification for scores $\ge$ X%</p>
+                </div>
+            </div>
+
+            <!-- Adzuna Optional Credentials -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Adzuna App ID (Optional)</label>
+                    <input type="text" name="adzuna_app_id" value="{{ adzuna_app_id or '' }}" placeholder="e.g. 1a2b3c4d" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Adzuna App Key (Optional)</label>
+                    <input type="password" name="adzuna_app_key" value="{{ adzuna_app_key or '' }}" placeholder="e.g. 9f8e7d..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
                 </div>
             </div>
         </div>
@@ -209,10 +242,230 @@
         <div class="flex justify-end">
             <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-2">
                 <i class="fa-solid fa-floppy-disk"></i>
-                <span>Save Configuration</span>
+                <span>Save Connector Settings</span>
             </button>
         </div>
     </form>
 </div>
-{% endblock %}
 
+<!-- ADD KEY MODAL -->
+<div id="addKeyModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div class="space-y-0.5">
+                <h3 class="text-base font-bold text-slate-900">Add Key to AI Pool</h3>
+                <p class="text-xs text-slate-500">Add any free key from Groq, OpenRouter, Gemini, Mistral, or Cerebras.</p>
+            </div>
+            <button onclick="closeAddKeyModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Provider Preset</label>
+                <select id="modalKeyProvider" onchange="applyModalPreset()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium">
+                    <option value="groq">⚡ Groq (Ultra-Fast &amp; Free - Llama 3.3 70B)</option>
+                    <option value="openrouter">🌐 OpenRouter (Free Tier - Llama 3, DeepSeek R1, Mistral)</option>
+                    <option value="gemini">✨ Google Gemini (Free Tier - Gemini 2.5 Flash)</option>
+                    <option value="mistral">🇫🇷 Mistral AI (Free Experiment Tier - Mistral Small)</option>
+                    <option value="cerebras">⚡ Cerebras (High-Throughput Free - Llama 3.1)</option>
+                    <option value="custom">🛠 Custom / Local (Ollama or OpenAI Compatible)</option>
+                </select>
+                <p class="text-[11px] text-slate-400 mt-1" id="modalPresetHelp">Free keys at console.groq.com (no credit card needed).</p>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Friendly Label / Nickname</label>
+                <input type="text" id="modalKeyLabel" placeholder="e.g. My Free Groq Key #1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">API Key *</label>
+                <input type="password" id="modalKeySecret" placeholder="Paste key string here..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Model Name / ID</label>
+                    <input type="text" id="modalKeyModel" value="llama-3.3-70b-versatile" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Base URL</label>
+                    <input type="text" id="modalKeyBaseUrl" value="https://api.groq.com/openai/v1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
+            <button onclick="closeAddKeyModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                Cancel
+            </button>
+            <button onclick="submitNewKey()" id="addKeySubmitBtn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add to Pool</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const PRESETS = {
+        groq: {
+            url: 'https://api.groq.com/openai/v1',
+            model: 'llama-3.3-70b-versatile',
+            help: 'Free keys at console.groq.com - Blazing fast LPU inference, no credit card needed.'
+        },
+        openrouter: {
+            url: 'https://openrouter.ai/api/v1',
+            model: 'meta-llama/llama-3.3-70b-instruct:free',
+            help: 'Free keys at openrouter.ai/keys - Access 28+ free models ending in :free.'
+        },
+        gemini: {
+            url: '',
+            model: 'gemini-2.5-flash',
+            help: 'Free keys at aistudio.google.com/app/apikey - High token limits, no credit card required.'
+        },
+        mistral: {
+            url: 'https://api.mistral.ai/v1',
+            model: 'mistral-small-latest',
+            help: 'Free keys at console.mistral.ai - Experiment tier provides free access for prototyping.'
+        },
+        cerebras: {
+            url: 'https://api.cerebras.ai/v1',
+            model: 'llama3.1-8b',
+            help: 'Free keys at cloud.cerebras.ai - Wafer-scale engine with high token throughput.'
+        },
+        custom: {
+            url: 'http://localhost:11434/v1',
+            model: 'llama3',
+            help: 'Connect to local Ollama (http://localhost:11434/v1) or any OpenAI-compatible server.'
+        }
+    };
+
+    function applyModalPreset() {
+        const prov = document.getElementById('modalKeyProvider').value;
+        const p = PRESETS[prov];
+        if (p) {
+            document.getElementById('modalKeyModel').value = p.model;
+            document.getElementById('modalKeyBaseUrl').value = p.url;
+            document.getElementById('modalPresetHelp').innerText = p.help;
+        }
+    }
+
+    function openAddKeyModal() {
+        document.getElementById('addKeyModal').classList.remove('hidden');
+        applyModalPreset();
+    }
+
+    function closeAddKeyModal() {
+        document.getElementById('addKeyModal').classList.add('hidden');
+    }
+
+    async function submitNewKey() {
+        const provider = document.getElementById('modalKeyProvider').value;
+        const label = document.getElementById('modalKeyLabel').value || `${provider.toUpperCase()} Key`;
+        const apiKey = document.getElementById('modalKeySecret').value.trim();
+        const model = document.getElementById('modalKeyModel').value.trim();
+        const baseUrl = document.getElementById('modalKeyBaseUrl').value.trim();
+
+        if (!apiKey) {
+            showToast('Please enter an API Key string.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('addKeySubmitBtn');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/keys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: provider,
+                    label: label,
+                    api_key: apiKey,
+                    model: model,
+                    base_url: baseUrl
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                showToast(data.message, 'success');
+                closeAddKeyModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Error adding key.', 'error');
+            }
+        } catch (e) {
+            showToast('Failed to add key to pool.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function testKey(keyId) {
+        const btn = document.getElementById(`test-btn-${keyId}`);
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin mr-1"></i>Pinging...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/keys/${keyId}/test`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✓ ${data.message}`, 'success');
+            } else {
+                showToast(`✗ ${data.message}`, 'error');
+            }
+        } catch (e) {
+            showToast('Network error testing key.', 'error');
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+
+    async function resetKeyCooldown(keyId) {
+        try {
+            const res = await fetch(`/api/keys/${keyId}/reset-cooldown`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                showToast(data.message, 'success');
+                setTimeout(() => window.location.reload(), 600);
+            }
+        } catch (e) {
+            showToast('Error resetting cooldown.', 'error');
+        }
+    }
+
+    async function toggleKey(keyId) {
+        try {
+            const res = await fetch(`/api/keys/${keyId}/toggle`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                showToast(`Key ${data.enabled ? 'enabled' : 'disabled'}.`, 'info');
+                setTimeout(() => window.location.reload(), 600);
+            }
+        } catch (e) {
+            showToast('Error toggling key.', 'error');
+        }
+    }
+
+    async function deleteKey(keyId) {
+        if (!confirm('Are you sure you want to remove this key from the pool?')) return;
+        try {
+            const res = await fetch(`/api/keys/${keyId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                showToast(data.message, 'info');
+                const row = document.getElementById(`key-row-${keyId}`);
+                if (row) row.remove();
+                setTimeout(() => window.location.reload(), 500);
+            }
+        } catch (e) {
+            showToast('Error deleting key.', 'error');
+        }
+    }
+</script>
+{% endblock %}
