@@ -44,3 +44,4 @@ class BaseConnector(ABC):
         }
         """
         raise NotImplementedError("Direct API submission not supported for this connector.")
+

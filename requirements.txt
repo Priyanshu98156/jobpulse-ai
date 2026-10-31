@@ -12,3 +12,4 @@ python-multipart>=0.0.9
 pypdf>=4.1.0
 apscheduler>=3.10.4
 plyer>=2.1.0
+

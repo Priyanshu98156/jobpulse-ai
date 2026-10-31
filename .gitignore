@@ -9,3 +9,4 @@ data/resumes/*
 !data/resumes/.gitkeep
 .env
 .DS_Store
+

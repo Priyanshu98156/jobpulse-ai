@@ -1,36 +1,120 @@
 import json
 import logging
 import re
-from typing import Dict, Any, List
+import httpx
+from typing import Dict, Any, List, Optional
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Predefined provider presets
+PROVIDER_PRESETS = {
+    "groq": {
+        "base_url": "https://api.groq.com/openai/v1",
+        "default_model": "llama-3.3-70b-versatile"
+    },
+    "openrouter": {
+        "base_url": "https://openrouter.ai/api/v1",
+        "default_model": "meta-llama/llama-3.3-70b-instruct:free"
+    },
+    "mistral": {
+        "base_url": "https://api.mistral.ai/v1",
+        "default_model": "mistral-small-latest"
+    },
+    "cerebras": {
+        "base_url": "https://api.cerebras.ai/v1",
+        "default_model": "llama3.1-8b"
+    },
+    "gemini": {
+        "base_url": "",
+        "default_model": "gemini-2.5-flash"
+    }
+}
+
 class AIService:
     def __init__(self):
-        self._client = None
+        self._gemini_client = None
 
-    def _get_client(self):
-        if not settings.GEMINI_API_KEY:
+    def _get_api_key(self) -> str:
+        return (settings.AI_API_KEY or settings.GEMINI_API_KEY or "").strip()
+
+    def _get_provider(self) -> str:
+        provider = (settings.AI_PROVIDER or "gemini").lower().strip()
+        return provider
+
+    def _get_model_and_url(self):
+        provider = self._get_provider()
+        preset = PROVIDER_PRESETS.get(provider, {})
+        base_url = settings.AI_BASE_URL.strip() if settings.AI_BASE_URL else preset.get("base_url", "")
+        model = settings.AI_MODEL.strip() if settings.AI_MODEL else preset.get("default_model", "llama-3.3-70b-versatile")
+        return provider, base_url, model
+
+    def _call_llm(self, prompt: str) -> Optional[str]:
+        """
+        Unified LLM invoker supporting Gemini, Groq, OpenRouter, Mistral, Cerebras, and OpenAI-compatible endpoints.
+        """
+        api_key = self._get_api_key()
+        if not api_key:
             return None
-        if self._client is None:
+
+        provider, base_url, model = self._get_model_and_url()
+
+        # Google Gemini via official SDK
+        if provider == "gemini":
             try:
-                from google import genai
-                self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                if self._gemini_client is None:
+                    from google import genai
+                    self._gemini_client = genai.Client(api_key=api_key)
+                
+                resp = self._gemini_client.models.generate_content(
+                    model=model or "gemini-2.5-flash",
+                    contents=prompt
+                )
+                return resp.text.strip()
             except Exception as e:
-                logger.error(f"Failed to initialize Google GenAI client: {e}")
+                logger.warning(f"Gemini API call error: {e}")
                 return None
-        return self._client
+
+        # OpenAI-compatible providers: Groq, OpenRouter, Mistral, Cerebras, Custom
+        try:
+            target_url = f"{base_url.rstrip('/')}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            if provider == "openrouter":
+                headers["HTTP-Referer"] = "http://localhost:8000"
+                headers["X-Title"] = "JobPulse AI"
+
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.3
+            }
+
+            with httpx.Client(timeout=30.0) as client:
+                res = client.post(target_url, headers=headers, json=payload)
+                if res.status_code != 200:
+                    logger.warning(f"{provider.upper()} API returned status {res.status_code}: {res.text[:300]}")
+                    return None
+                
+                data = res.json()
+                choices = data.get("choices", [])
+                if choices and len(choices) > 0:
+                    msg = choices[0].get("message", {})
+                    return msg.get("content", "").strip()
+        except Exception as e:
+            logger.warning(f"Error calling {provider.upper()} API: {e}")
+
+        return None
 
     def score_and_match(self, job_title: str, job_description: str, profile_summary: str, skills_str: str, resume_text: str) -> Dict[str, Any]:
         """
         Calculates match score (0-100), matching skills, missing keywords, and match reasoning.
-        Uses Gemini if API key is configured, else falls back to local intelligent heuristic matching.
         """
-        client = self._get_client()
-        if client:
-            try:
-                prompt = f"""
+        prompt = f"""
 You are an expert technical recruiter and career coach.
 Analyze the fit between this Candidate Profile / Resume and the Job Description.
 
@@ -54,19 +138,17 @@ Return ONLY a valid JSON object matching this exact schema:
 }}
 Do not include markdown codeblocks or extra text.
 """
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
-                text = response.text.strip()
-                # Clean up json if markdown formatted
-                if text.startswith("```json"):
-                    text = text[7:]
-                if text.startswith("```"):
-                    text = text[3:]
-                if text.endswith("```"):
-                    text = text[:-3]
-                parsed = json.loads(text.strip())
+        response_text = self._call_llm(prompt)
+        if response_text:
+            try:
+                clean_text = response_text.strip()
+                if clean_text.startswith("```json"):
+                    clean_text = clean_text[7:]
+                if clean_text.startswith("```"):
+                    clean_text = clean_text[3:]
+                if clean_text.endswith("```"):
+                    clean_text = clean_text[:-3]
+                parsed = json.loads(clean_text.strip())
                 return {
                     "match_score": max(0, min(100, int(parsed.get("match_score", 50)))),
                     "match_reason": parsed.get("match_reason", "AI match evaluation completed."),
@@ -74,7 +156,7 @@ Do not include markdown codeblocks or extra text.
                     "missing_keywords": parsed.get("missing_keywords", [])
                 }
             except Exception as e:
-                logger.warning(f"Gemini API matching error: {e}. Falling back to heuristic matching.")
+                logger.warning(f"Error parsing AI response: {e}. Falling back to heuristic.")
 
         # Heuristic matching fallback
         return self._heuristic_match(job_title, job_description, profile_summary, skills_str, resume_text)
@@ -83,7 +165,6 @@ Do not include markdown codeblocks or extra text.
         full_cand_text = f"{profile_summary} {skills_str} {resume_text}".lower()
         full_job_text = f"{job_title} {job_description}".lower()
 
-        # Tokenize candidate skills
         raw_skills = [s.strip().lower() for s in re.split(r"[,|\n/]", skills_str) if s.strip()]
         if not raw_skills:
             raw_skills = ["python", "sql", "machine learning", "data analysis", "docker", "fastapi", "git"]
@@ -96,7 +177,6 @@ Do not include markdown codeblocks or extra text.
             else:
                 missing.append(s.title())
 
-        # Check job title similarity
         title_words = [w for w in re.findall(r"\w+", job_title.lower()) if len(w) > 3]
         title_hits = sum(1 for w in title_words if w in full_cand_text)
         title_ratio = (title_hits / len(title_words)) if title_words else 0.5
@@ -118,13 +198,7 @@ Do not include markdown codeblocks or extra text.
         }
 
     def generate_cover_letter(self, job_title: str, company: str, job_description: str, candidate_name: str, profile_summary: str, skills_str: str, resume_text: str) -> str:
-        """
-        Generates a tailored, professional, high-impact cover letter.
-        """
-        client = self._get_client()
-        if client:
-            try:
-                prompt = f"""
+        prompt = f"""
 Write a professional, compelling, and concise cover letter (3-4 focused paragraphs, under 300 words) for the following job application.
 
 CANDIDATE INFO:
@@ -146,13 +220,9 @@ TONE & STYLE:
 - Avoid generic buzzwords.
 - Do not use placeholders like '[Insert Date]' or '[Company Address]'. Start directly with 'Dear Hiring Team at {company},' and end with 'Sincerely,\n{candidate_name or "Applicant"}'.
 """
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
-                return response.text.strip()
-            except Exception as e:
-                logger.warning(f"Gemini API cover letter generation error: {e}. Falling back to template.")
+        response_text = self._call_llm(prompt)
+        if response_text:
+            return response_text.strip()
 
         # Fallback template
         name = candidate_name or "Applicant"
@@ -169,18 +239,11 @@ Sincerely,
 {name}"""
 
     def answer_screening_questions(self, questions: List[str], profile_dict: Dict[str, Any]) -> Dict[str, str]:
-        """
-        Answers common or custom screening questions based on the candidate profile.
-        """
-        client = self._get_client()
         results = {}
-        
         if not questions:
             return results
 
-        if client:
-            try:
-                prompt = f"""
+        prompt = f"""
 Answer these job application screening questions for this candidate accurately and concisely:
 
 CANDIDATE PROFILE:
@@ -198,20 +261,19 @@ QUESTIONS:
 Return a JSON mapping of each question string to the candidate's concise answer. Format:
 {{"Question text": "Concise answer"}}
 """
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
-                text = response.text.strip()
-                if text.startswith("```json"):
-                    text = text[7:]
-                if text.startswith("```"):
-                    text = text[3:]
-                if text.endswith("```"):
-                    text = text[:-3]
-                return json.loads(text.strip())
+        response_text = self._call_llm(prompt)
+        if response_text:
+            try:
+                clean_text = response_text.strip()
+                if clean_text.startswith("```json"):
+                    clean_text = clean_text[7:]
+                if clean_text.startswith("```"):
+                    clean_text = clean_text[3:]
+                if clean_text.endswith("```"):
+                    clean_text = clean_text[:-3]
+                return json.loads(clean_text.strip())
             except Exception as e:
-                logger.warning(f"Gemini screening answer error: {e}")
+                logger.warning(f"Screening questions parsing error: {e}")
 
         # Fallback answers
         for q in questions:

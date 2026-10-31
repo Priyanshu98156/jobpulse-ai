@@ -135,3 +135,4 @@ class LeverConnector(BaseConnector):
         except Exception as e:
             logger.error(f"Lever direct submit error: {e}")
             return {"success": False, "message": f"Connection error: {str(e)}"}
+

@@ -89,3 +89,4 @@ class ConnectorSetting(Base):
     config = Column(JSON, default=dict)
     last_synced_at = Column(DateTime, nullable=True)
     last_error = Column(Text, default="")
+

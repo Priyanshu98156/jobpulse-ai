@@ -85,3 +85,4 @@ class AdzunaConnector(BaseConnector):
             logger.error(f"Error fetching from Adzuna API: {e}")
 
         return results
+

@@ -244,8 +244,12 @@ async def settings_page(request: Request, message: Optional[str] = None, db: Ses
         context={
             "active_page": "settings",
             "connectors": enriched_connectors,
+            "ai_provider": settings.AI_PROVIDER,
+            "ai_api_key": settings.AI_API_KEY,
+            "ai_model": settings.AI_MODEL,
+            "ai_base_url": settings.AI_BASE_URL,
+            "ai_key_set": bool(settings.AI_API_KEY or settings.GEMINI_API_KEY),
             "gemini_api_key": settings.GEMINI_API_KEY,
-            "gemini_key_set": bool(settings.GEMINI_API_KEY),
             "adzuna_app_id": settings.ADZUNA_APP_ID,
             "adzuna_app_key": settings.ADZUNA_APP_KEY,
             "auto_sync_enabled": settings.AUTO_SYNC_ENABLED,
@@ -258,6 +262,10 @@ async def settings_page(request: Request, message: Optional[str] = None, db: Ses
 @app.post("/settings", response_class=HTMLResponse)
 async def save_settings(
     request: Request,
+    ai_provider: Optional[str] = Form("gemini"),
+    ai_api_key: Optional[str] = Form(""),
+    ai_model: Optional[str] = Form(""),
+    ai_base_url: Optional[str] = Form(""),
     gemini_api_key: Optional[str] = Form(""),
     adzuna_app_id: Optional[str] = Form(""),
     adzuna_app_key: Optional[str] = Form(""),
@@ -269,19 +277,29 @@ async def save_settings(
     form_data = await request.form()
 
     # Update runtime and env settings
-    settings.GEMINI_API_KEY = gemini_api_key.strip() if gemini_api_key else ""
-    settings.ADZUNA_APP_ID = adzuna_app_id.strip() if adzuna_app_id else ""
-    settings.ADZUNA_APP_KEY = adzuna_app_key.strip() if adzuna_app_key else ""
+    settings.AI_PROVIDER = (ai_provider or "gemini").lower().strip()
+    key = (ai_api_key or gemini_api_key or "").strip()
+    settings.AI_API_KEY = key
+    settings.GEMINI_API_KEY = key
+    settings.AI_MODEL = (ai_model or "").strip()
+    settings.AI_BASE_URL = (ai_base_url or "").strip()
+
+    settings.ADZUNA_APP_ID = (adzuna_app_id or "").strip()
+    settings.ADZUNA_APP_KEY = (adzuna_app_key or "").strip()
     settings.AUTO_SYNC_ENABLED = (auto_sync_enabled.lower() == "true")
     settings.SYNC_INTERVAL_MINUTES = max(15, sync_interval_minutes)
     settings.NOTIFICATION_MIN_SCORE = max(50, min(100, notification_min_score))
 
-    # Reset Gemini client so new key is picked up
-    ai_service._client = None
+    # Reset AI client
+    ai_service._gemini_client = None
 
     # Write back to .env
     env_path = BASE_DIR / ".env"
-    env_content = f"""GEMINI_API_KEY={settings.GEMINI_API_KEY}
+    env_content = f"""AI_PROVIDER={settings.AI_PROVIDER}
+AI_API_KEY={settings.AI_API_KEY}
+AI_MODEL={settings.AI_MODEL}
+AI_BASE_URL={settings.AI_BASE_URL}
+GEMINI_API_KEY={settings.GEMINI_API_KEY}
 ADZUNA_APP_ID={settings.ADZUNA_APP_ID}
 ADZUNA_APP_KEY={settings.ADZUNA_APP_KEY}
 PORT={settings.PORT}

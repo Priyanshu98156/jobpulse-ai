@@ -71,3 +71,4 @@ Open your browser to: **[http://localhost:8000](http://localhost:8000)**
    - Click **1-Click Review & Apply** on any role:
      - Review the Gemini-tailored cover letter (or click *Regenerate with Gemini*).
      - Hit **Confirm & Apply Now** to submit!
+

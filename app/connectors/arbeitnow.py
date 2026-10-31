@@ -67,3 +67,4 @@ class ArbeitnowConnector(BaseConnector):
             logger.error(f"Error fetching from Arbeitnow API: {e}")
 
         return results
+

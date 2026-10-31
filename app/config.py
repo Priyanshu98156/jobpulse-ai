@@ -9,7 +9,16 @@ UPLOADS_DIR = DATA_DIR / "resumes"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
 class Settings(BaseSettings):
+    # Multi-Provider AI Settings
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "gemini") # gemini, groq, openrouter, mistral, cerebras, custom
+    AI_API_KEY: str = os.getenv("AI_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
+    AI_MODEL: str = os.getenv("AI_MODEL", "")
+    AI_BASE_URL: str = os.getenv("AI_BASE_URL", "")
+
+    # Legacy alias
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    
+    # Adzuna API
     ADZUNA_APP_ID: str = os.getenv("ADZUNA_APP_ID", "")
     ADZUNA_APP_KEY: str = os.getenv("ADZUNA_APP_KEY", "")
     

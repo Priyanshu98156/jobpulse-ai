@@ -54,3 +54,4 @@ class RemotiveConnector(BaseConnector):
             logger.error(f"Error fetching from Remotive API: {e}")
 
         return results
+

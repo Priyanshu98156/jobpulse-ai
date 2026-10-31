@@ -76,3 +76,4 @@ class TheMuseConnector(BaseConnector):
             logger.error(f"Error fetching from The Muse API: {e}")
 
         return results
+

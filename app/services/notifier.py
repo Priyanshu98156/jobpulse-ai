@@ -21,3 +21,4 @@ class DesktopNotifier:
             logger.warning(f"Desktop notification failed: {e}")
 
 desktop_notifier = DesktopNotifier()
+

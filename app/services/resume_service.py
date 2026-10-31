@@ -22,3 +22,4 @@ class ResumeService:
             return ""
 
 resume_service = ResumeService()
+
