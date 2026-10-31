@@ -267,10 +267,12 @@
                 <select id="modalKeyProvider" onchange="applyModalPreset()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium">
                     <option value="groq">⚡ Groq (Ultra-Fast &amp; Free - Llama 3.3 70B)</option>
                     <option value="openrouter">🌐 OpenRouter (Free Tier - Llama 3, DeepSeek R1, Mistral)</option>
+                    <option value="sambanova">🚀 SambaNova AI (Fast RDU Inference - Llama 3.3 70B)</option>
+                    <option value="nvidia">🟢 NVIDIA NIM (build.nvidia.com - 1000 Free Credits)</option>
                     <option value="gemini">✨ Google Gemini (Free Tier - Gemini 2.5 Flash)</option>
                     <option value="mistral">🇫🇷 Mistral AI (Free Experiment Tier - Mistral Small)</option>
                     <option value="cerebras">⚡ Cerebras (High-Throughput Free - Llama 3.1)</option>
-                    <option value="custom">🛠 Custom / Local (Ollama or OpenAI Compatible)</option>
+                    <option value="custom">🛠 Custom / Local (Cloudflare, Ollama or OpenAI Compatible)</option>
                 </select>
                 <p class="text-[11px] text-slate-400 mt-1" id="modalPresetHelp">Free keys at console.groq.com (no credit card needed).</p>
             </div>
@@ -320,6 +322,16 @@
             url: 'https://openrouter.ai/api/v1',
             model: 'meta-llama/llama-3.3-70b-instruct:free',
             help: 'Free keys at openrouter.ai/keys - Access 28+ free models ending in :free.'
+        },
+        sambanova: {
+            url: 'https://api.sambanova.ai/v1',
+            model: 'Meta-Llama-3.3-70B-Instruct',
+            help: 'Free keys at cloud.sambanova.ai - Blazing fast RDU inference, generous limits.'
+        },
+        nvidia: {
+            url: 'https://integrate.api.nvidia.com/v1',
+            model: 'meta/llama-3.3-70b-instruct',
+            help: 'Free keys at build.nvidia.com - 1,000 free inference credits on sign up.'
         },
         gemini: {
             url: '',

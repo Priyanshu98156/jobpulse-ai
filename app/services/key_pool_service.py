@@ -28,6 +28,14 @@ PROVIDER_PRESETS = {
         "base_url": "https://api.cerebras.ai/v1",
         "default_model": "llama3.1-8b"
     },
+    "sambanova": {
+        "base_url": "https://api.sambanova.ai/v1",
+        "default_model": "Meta-Llama-3.3-70B-Instruct"
+    },
+    "nvidia": {
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "default_model": "meta/llama-3.3-70b-instruct"
+    },
     "gemini": {
         "base_url": "",
         "default_model": "gemini-2.5-flash"
@@ -238,3 +246,4 @@ class RateLimitException(Exception):
         self.cooldown_seconds = cooldown_seconds
 
 key_pool_service = KeyPoolService()
+
