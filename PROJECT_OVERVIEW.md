@@ -218,3 +218,4 @@ When modifying or extending this codebase, adhere to the following principles:
    - SQLite is used with `check_same_thread=False`. Keep transactions scoped using `SessionLocal` or FastAPI's `Depends(get_db)`.
 4. **ATS Application Safety**:
    - Keep the human-in-the-loop review modal (`review_pending` status) as the default flow before final application submission. Do not submit blindly without user confirmation unless explicitly requested.
+
