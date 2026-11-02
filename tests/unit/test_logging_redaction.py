@@ -23,3 +23,4 @@ def test_redact_embedded_emails_and_phones():
     assert "[EMAIL_REDACTED]" in redacted["event"]
     assert "+1-555-123-4567" not in redacted["event"]
     assert "[PHONE_REDACTED]" in redacted["event"]
+

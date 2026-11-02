@@ -88,3 +88,4 @@ class AnswerBankDomain(BaseModel):
     category: str = "general" # legal, compensation, technical, personal
     is_factual: bool = True # If True, NEVER modified or hallucinated by LLMs
     source: str = "user_verified" # user_verified, resume_extracted
+

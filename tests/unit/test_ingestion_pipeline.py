@@ -89,3 +89,4 @@ async def test_ingestion_eligibility_gating_and_deduplication():
         db.commit()
     finally:
         db.close()
+

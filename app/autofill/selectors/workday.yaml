@@ -54,3 +54,4 @@ pages:
       # CRITICAL SAFETY: The submit button pattern MUST NEVER BE CLICKED AUTOMATICALLY
       - 'button[data-automation-id="bottom-navigation-submit-button"]'
       - 'button:has-text("Submit")'
+

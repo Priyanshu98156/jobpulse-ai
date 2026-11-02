@@ -84,3 +84,4 @@ def test_layer3_llm_structured_parsing(service):
     assert verdict.status == EligibilityStatus.ELIGIBLE
     assert verdict.confidence == 0.92
     assert verdict.requires_human_look is False
+

@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from app.config import settings, BASE_DIR, UPLOADS_DIR
 from app.database import engine, get_db, Base
-from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, AIKey, AnswerBank
+from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, AIKey, AnswerBank, utc_now
 from app.connectors.manager import connector_manager
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.resume_service import resume_service
@@ -56,6 +56,7 @@ def seed_initial_data():
             ("remotive", "Remotive (Remote Tech & Data)", True),
             ("arbeitnow", "Arbeitnow (Global & Remote Tech)", True),
             ("themuse", "The Muse (Top Tech & Enterprise Companies)", True),
+            ("himalayas", "Himalayas (Global Remote Tech Jobs)", True),
             ("greenhouse", "Greenhouse ATS (Direct Boards & API Apply)", True),
             ("lever", "Lever ATS (Direct Postings & API Apply)", True),
             ("adzuna", "Adzuna (Global Job Search API)", False)
@@ -177,7 +178,7 @@ async def save_profile(
     github_url: Optional[str] = Form(""),
     target_titles: Optional[str] = Form(""),
     skills: Optional[str] = Form(""),
-    years_of_experience: float = Form(3.0),
+    years_of_experience: Optional[str] = Form("3.0"),
     work_authorization: Optional[str] = Form(""),
     notice_period: Optional[str] = Form(""),
     expected_salary: Optional[str] = Form(""),
@@ -198,15 +199,18 @@ async def save_profile(
     profile.github_url = github_url or ""
     profile.target_titles = target_titles or ""
     profile.skills = skills or ""
-    profile.years_of_experience = years_of_experience
+    try:
+        profile.years_of_experience = float(years_of_experience) if years_of_experience else 3.0
+    except (ValueError, TypeError):
+        profile.years_of_experience = 3.0
     profile.work_authorization = work_authorization or ""
     profile.notice_period = notice_period or ""
     profile.expected_salary = expected_salary or ""
     profile.summary = summary or ""
 
     # Handle resume upload if provided
-    if resume_file and resume_file.filename and resume_file.filename.endswith(".pdf"):
-        saved_filename = f"master_resume_{int(datetime.utcnow().timestamp())}.pdf"
+    if resume_file and resume_file.filename and resume_file.filename.lower().endswith(".pdf"):
+        saved_filename = f"master_resume_{int(utc_now().timestamp())}.pdf"
         target_path = UPLOADS_DIR / saved_filename
         with open(target_path, "wb") as buffer:
             shutil.copyfileobj(resume_file.file, buffer)
@@ -286,13 +290,17 @@ async def save_settings(
 ):
     form_data = await request.form()
 
-    # Update runtime and env settings
-    settings.AI_PROVIDER = (ai_provider or "gemini").lower().strip()
-    key = (ai_api_key or gemini_api_key or "").strip()
-    settings.AI_API_KEY = key
-    settings.GEMINI_API_KEY = key
-    settings.AI_MODEL = (ai_model or "").strip()
-    settings.AI_BASE_URL = (ai_base_url or "").strip()
+    # Only update runtime AI settings if explicitly provided in form
+    if ai_provider and "ai_provider" in form_data:
+        settings.AI_PROVIDER = ai_provider.lower().strip()
+    submitted_key = (ai_api_key or gemini_api_key or "").strip()
+    if submitted_key:
+        settings.AI_API_KEY = submitted_key
+        settings.GEMINI_API_KEY = submitted_key
+    if ai_model and "ai_model" in form_data:
+        settings.AI_MODEL = ai_model.strip()
+    if ai_base_url and "ai_base_url" in form_data:
+        settings.AI_BASE_URL = ai_base_url.strip()
 
     settings.ADZUNA_APP_ID = (adzuna_app_id or "").strip()
     settings.ADZUNA_APP_KEY = (adzuna_app_key or "").strip()
@@ -442,7 +450,53 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
             "external_url": job.url
         }
 
-    # Case 2: LinkedIn, Naukri, or External Board -> Assist-Only Mode
+    # Case 2: Direct ATS API submission (Greenhouse / Lever) with graceful fallback
+    conn = connector_manager.get_connector(platform)
+    if conn and getattr(conn, "has_submit_api", False):
+        resume_full_path = None
+        if profile and profile.master_resume_filename:
+            candidate_resume = UPLOADS_DIR / profile.master_resume_filename
+            if candidate_resume.exists():
+                resume_full_path = str(candidate_resume)
+
+        profile_dict = {
+            "full_name": profile.full_name if profile else "Applicant",
+            "email": profile.email if profile else "",
+            "phone": profile.phone if profile else "",
+            "linkedin_url": profile.linkedin_url if profile else "",
+            "github_url": profile.github_url if profile else "",
+            "portfolio_url": profile.portfolio_url if profile else "",
+            "work_authorization": profile.work_authorization if profile else "",
+            "notice_period": profile.notice_period if profile else "",
+            "expected_salary": profile.expected_salary if profile else "",
+        }
+
+        try:
+            result = await conn.submit_application(
+                job_external_id=job.external_id,
+                profile_data=profile_dict,
+                resume_path=resume_full_path,
+                cover_letter=req.cover_letter or (pkg.tailored_cover_letter if pkg else ""),
+                answers=answers
+            )
+            if result.get("success"):
+                job.status = "applied"
+                if pkg:
+                    pkg.submission_method = "api"
+                    pkg.submission_status = "submitted"
+                    pkg.submitted_at = utc_now()
+                    pkg.submission_response = str(result.get("raw_response", ""))
+                db.commit()
+                return {
+                    "status": "ok",
+                    "submission_method": "api",
+                    "message": result.get("message", "Application submitted via ATS API!"),
+                    "external_url": job.url
+                }
+        except Exception as e:
+            logger.warning(f"ATS API submit encountered error: {e}. Falling back to assisted apply.")
+
+    # Case 3: LinkedIn, Naukri, or External Board -> Assist-Only Mode
     # Zero DOM automation: Direct URL + 1-Click Clipboard Answers from Answer Bank
     job.status = "applied"
     if pkg:
@@ -462,11 +516,16 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
 class StatusRequest(BaseModel):
     status: str
 
+ALLOWED_STATUSES = {"discovered", "review_pending", "applied", "interviewing", "skipped", "rejected"}
+
 @app.post("/api/job/{job_id}/status")
 async def update_status(job_id: int, req: StatusRequest, db: Session = Depends(get_db)):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    if req.status not in ALLOWED_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid status '{req.status}'. Must be one of: {', '.join(sorted(ALLOWED_STATUSES))}")
 
     job.status = req.status
     db.commit()

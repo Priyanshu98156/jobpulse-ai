@@ -56,3 +56,4 @@ class JobPosting(BaseModel):
     matching_skills: List[str] = Field(default_factory=list)
     missing_keywords: List[str] = Field(default_factory=list)
     status: ApplicationStatus = ApplicationStatus.DISCOVERED
+

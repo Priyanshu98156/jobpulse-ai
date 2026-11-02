@@ -76,3 +76,4 @@ def test_candidate_identity_lifecycle_and_encryption():
         db.commit()
     finally:
         db.close()
+

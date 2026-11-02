@@ -42,3 +42,4 @@ def test_score_hash_caching():
     # Second call should be a cache hit
     res2 = ai_service.score_and_match(job_title, job_desc, summary, skills, resume)
     assert res1 == res2
+

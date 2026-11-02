@@ -21,11 +21,19 @@ class SecurityHeadersAndCSRFMiddleware(BaseHTTPMiddleware):
 
             # Check origin if present
             if origin:
-                if not any(origin.startswith(f"http://{allowed}") for allowed in ["127.0.0.1", "localhost"]):
+                valid_origin = any(
+                    origin.startswith(f"http://{allowed}") or origin.startswith(f"https://{allowed}")
+                    for allowed in ["127.0.0.1", "localhost", "testserver"]
+                )
+                if not valid_origin:
                     return JSONResponse(status_code=403, content={"detail": "Cross-Origin request blocked by security policy."})
             # If no origin, check referer
             elif referer:
-                if not any(referer.startswith(f"http://{allowed}") for allowed in ["127.0.0.1", "localhost"]):
+                valid_referer = any(
+                    referer.startswith(f"http://{allowed}") or referer.startswith(f"https://{allowed}")
+                    for allowed in ["127.0.0.1", "localhost", "testserver"]
+                )
+                if not valid_referer:
                     return JSONResponse(status_code=403, content={"detail": "Cross-Site Referer request blocked by security policy."})
 
         # Ensure a CSRF token cookie is present

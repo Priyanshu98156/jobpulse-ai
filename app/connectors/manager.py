@@ -11,6 +11,7 @@ from app.connectors.themuse import TheMuseConnector
 from app.connectors.greenhouse import GreenhouseConnector
 from app.connectors.lever import LeverConnector
 from app.connectors.adzuna import AdzunaConnector
+from app.connectors.himalayas import HimalayasConnector
 from app.services.ai_service import ai_service
 from app.services.eligibility_service import eligibility_service
 from app.domain.models import EligibilityStatus
@@ -25,6 +26,7 @@ class ConnectorManager:
             "remotive": RemotiveConnector(),
             "arbeitnow": ArbeitnowConnector(),
             "themuse": TheMuseConnector(),
+            "himalayas": HimalayasConnector(),
             "greenhouse": GreenhouseConnector(),
             "lever": LeverConnector(),
             "adzuna": AdzunaConnector()

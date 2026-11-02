@@ -15,3 +15,4 @@ class ScoringVerdict(BaseModel):
     matching_skills: List[str] = Field(default_factory=list)
     missing_keywords: List[str] = Field(default_factory=list)
     recommended_action: str = "review_needed" # apply, review_needed, skip
+

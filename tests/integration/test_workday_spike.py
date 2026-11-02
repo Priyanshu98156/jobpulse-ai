@@ -77,3 +77,4 @@ async def test_workday_autofill_and_structural_stop(tmp_path):
         assert "STRUCTURAL STOP" in result["message"]
 
         await browser.close()
+

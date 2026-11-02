@@ -35,3 +35,4 @@ def test_skill_claimable_guardrail():
         claimable=True
     )
     assert skill.claimable is True
+

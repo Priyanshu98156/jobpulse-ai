@@ -58,3 +58,4 @@ class BrowserManager:
         logger.info("Browser session closed cleanly.")
 
 browser_manager = BrowserManager()
+
