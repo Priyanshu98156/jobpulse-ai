@@ -5,6 +5,14 @@ from app.db.models import (
     ApplicationPackage,
     ConnectorSetting,
     AIKey,
+    CandidateIdentity,
+    WorkExperience,
+    Education,
+    Project,
+    Skill,
+    ResumeVersion,
+    SearchProfile,
+    AnswerBank,
     utc_now,
 )
 
@@ -14,5 +22,13 @@ __all__ = [
     "ApplicationPackage",
     "ConnectorSetting",
     "AIKey",
+    "CandidateIdentity",
+    "WorkExperience",
+    "Education",
+    "Project",
+    "Skill",
+    "ResumeVersion",
+    "SearchProfile",
+    "AnswerBank",
     "utc_now",
 ]
