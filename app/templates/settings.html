@@ -6,11 +6,13 @@
 <div class="max-w-5xl mx-auto space-y-6">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">AI Key Pool &amp; Connector Settings</h1>
-        <p class="text-xs text-slate-500 mt-1">Manage multiple AI keys with automatic quota failover, round-robin load balancing, and platform connectors.</p>
+        <p class="text-xs text-slate-500 mt-1">Manage multiple AI keys with automatic quota failover, round-robin load
+            balancing, and platform connectors.</p>
     </div>
 
     {% if message %}
-    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+    <div
+        class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
         <i class="fa-solid fa-circle-check"></i>
         <span>{{ message }}</span>
     </div>
@@ -24,17 +26,22 @@
                     <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
                         <i class="fa-solid fa-layer-group text-indigo-600"></i> Multi-Key AI Pool
                     </h2>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <span
+                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                         <i class="fa-solid fa-arrows-spin mr-1"></i>Round-Robin Load Balanced
                     </span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span
+                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <i class="fa-solid fa-shield-halved mr-1"></i>Auto-Failover Active
                     </span>
                 </div>
-                <p class="text-[11px] text-slate-500">Store multiple keys across Groq, OpenRouter, Gemini, Mistral, and Cerebras. If any key hits a rate limit (HTTP 429), it auto-cooldowns and instantly switches to the next healthy key.</p>
+                <p class="text-[11px] text-slate-500">Store multiple keys across Groq, OpenRouter, Gemini, Mistral, and
+                    Cerebras. If any key hits a rate limit (HTTP 429), it auto-cooldowns and instantly switches to the
+                    next healthy key.</p>
             </div>
-            
-            <button type="button" onclick="openAddKeyModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition-all inline-flex items-center gap-1.5 self-start sm:self-auto">
+
+            <button type="button" onclick="openAddKeyModal()"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition-all inline-flex items-center gap-1.5 self-start sm:self-auto">
                 <i class="fa-solid fa-plus"></i>
                 <span>Add Key to Pool</span>
             </button>
@@ -45,7 +52,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
-                    <tr class="border-b border-slate-200 text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+                    <tr
+                        class="border-b border-slate-200 text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
                         <th class="py-2.5 px-3">Provider &amp; Label</th>
                         <th class="py-2.5 px-3">Model</th>
                         <th class="py-2.5 px-3">Key Token</th>
@@ -74,51 +82,65 @@
                         <td class="py-3 px-3 font-mono text-[11px] text-slate-600">{{ k.model or 'default' }}</td>
                         <td class="py-3 px-3 font-mono text-[11px] text-slate-500">
                             {% if k.api_key|length > 10 %}
-                                {{ k.api_key[:4] }}••••••••{{ k.api_key[-4:] }}
+                            {{ k.api_key[:4] }}••••••••{{ k.api_key[-4:] }}
                             {% else %}
-                                ••••••••
+                            ••••••••
                             {% endif %}
                         </td>
                         <td class="py-3 px-3">
                             {% if not k.enabled %}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                            <span
+                                class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
                                 <i class="fa-solid fa-ban mr-1"></i>Disabled
                             </span>
                             {% elif k.is_in_cooldown %}
                             <div class="space-y-0.5">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
                                     <i class="fa-solid fa-hourglass-half"></i> In Cooldown
                                 </span>
                                 {% if k.cooldown_until %}
-                                <p class="text-[10px] text-amber-700">Until {{ k.cooldown_until.strftime('%H:%M:%S') }}</p>
+                                <p class="text-[10px] text-amber-700">Until {{ k.cooldown_until.strftime('%H:%M:%S') }}
+                                </p>
                                 {% endif %}
                             </div>
                             {% else %}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <span
+                                class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                                 <i class="fa-solid fa-circle-check mr-1"></i>Healthy
                             </span>
                             {% endif %}
                         </td>
                         <td class="py-3 px-3 text-slate-600 text-[11px]">
-                            <span class="font-semibold text-slate-900">{{ k.successful_requests }}</span> / {{ k.total_requests }} calls
+                            <span class="font-semibold text-slate-900">{{ k.successful_requests }}</span> / {{
+                            k.total_requests }} calls
                             {% if k.rate_limit_hits > 0 %}
                             <span class="text-amber-600 font-bold ml-1">({{ k.rate_limit_hits }} limits)</span>
                             {% endif %}
                         </td>
                         <td class="py-3 px-3 text-right">
                             <div class="inline-flex items-center gap-1.5">
-                                <button type="button" onclick="testKey({{ k.id }})" id="test-btn-{{ k.id }}" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-semibold transition-colors" title="Test Key Validity & Latency">
+                                <button type="button" onclick="testKey({{ k.id }})" id="test-btn-{{ k.id }}"
+                                    class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-semibold transition-colors"
+                                    title="Test Key Validity & Latency">
                                     <i class="fa-solid fa-bolt mr-1"></i>Test
                                 </button>
                                 {% if k.is_in_cooldown %}
-                                <button type="button" onclick="resetKeyCooldown({{ k.id }})" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[11px] font-semibold transition-colors" title="Clear Cooldown Early">
+                                <button type="button" onclick="resetKeyCooldown({{ k.id }})"
+                                    class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[11px] font-semibold transition-colors"
+                                    title="Clear Cooldown Early">
                                     <i class="fa-solid fa-rotate-left mr-1"></i>Reset
                                 </button>
                                 {% endif %}
-                                <button type="button" onclick="toggleKey({{ k.id }})" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-medium transition-colors" title="Toggle On/Off">
-                                    <i class="fa-solid {% if k.enabled %}fa-toggle-on text-indigo-600{% else %}fa-toggle-off text-slate-400{% endif %} text-sm"></i>
+                                <button type="button" onclick="toggleKey({{ k.id }})"
+                                    class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-medium transition-colors"
+                                    title="Toggle On/Off">
+                                    <i
+                                        class="fa-solid {% if k.enabled %}fa-toggle-on text-indigo-600{% else %}fa-toggle-off text-slate-400{% endif %} text-sm"></i>
                                 </button>
-                                <button type="button" onclick="deleteKey({{ k.id }})" class="px-2 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 rounded-lg text-[11px] transition-colors" title="Delete Key">
+                                <button type="button" onclick="deleteKey({{ k.id }})"
+                                    class="px-2 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 rounded-lg text-[11px] transition-colors"
+                                    title="Delete Key">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </div>
@@ -130,14 +152,17 @@
         </div>
         {% else %}
         <div class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-3">
-            <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-lg">
+            <div
+                class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-lg">
                 <i class="fa-solid fa-key"></i>
             </div>
             <div class="space-y-1">
                 <p class="font-bold text-slate-900 text-xs">No keys configured in the pool yet</p>
-                <p class="text-[11px] text-slate-500">Currently using built-in rule-based heuristic matching. Click <strong>Add Key to Pool</strong> to add free keys from Groq, OpenRouter, or Gemini.</p>
+                <p class="text-[11px] text-slate-500">Currently using built-in rule-based heuristic matching. Click
+                    <strong>Add Key to Pool</strong> to add free keys from Groq, OpenRouter, or Gemini.</p>
             </div>
-            <button type="button" onclick="openAddKeyModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5">
+            <button type="button" onclick="openAddKeyModal()"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5">
                 <i class="fa-solid fa-plus"></i>
                 <span>Add Your First Free Key</span>
             </button>
@@ -156,18 +181,24 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Auto-Sync Worker</label>
-                    <select name="auto_sync_enabled" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                    <select name="auto_sync_enabled"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
                         <option value="true" {% if auto_sync_enabled %}selected{% endif %}>Enabled (Automatic)</option>
-                        <option value="false" {% if not auto_sync_enabled %}selected{% endif %}>Disabled (Manual Only)</option>
+                        <option value="false" {% if not auto_sync_enabled %}selected{% endif %}>Disabled (Manual Only)
+                        </option>
                     </select>
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Sync Interval (Minutes)</label>
-                    <input type="number" name="sync_interval_minutes" value="{{ sync_interval_minutes }}" min="15" max="1440" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                    <input type="number" name="sync_interval_minutes" value="{{ sync_interval_minutes }}" min="15"
+                        max="1440"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Desktop Toast Score Threshold</label>
-                    <input type="number" name="notification_min_score" value="{{ notification_min_score }}" min="50" max="100" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                    <input type="number" name="notification_min_score" value="{{ notification_min_score }}" min="50"
+                        max="100"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
                     <p class="text-[11px] text-slate-400 mt-1">Triggers Windows notification for scores $\ge$ X%</p>
                 </div>
             </div>
@@ -176,11 +207,15 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 text-xs">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Adzuna App ID (Optional)</label>
-                    <input type="text" name="adzuna_app_id" value="{{ adzuna_app_id or '' }}" placeholder="e.g. 1a2b3c4d" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <input type="text" name="adzuna_app_id" value="{{ adzuna_app_id or '' }}"
+                        placeholder="e.g. 1a2b3c4d"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Adzuna App Key (Optional)</label>
-                    <input type="password" name="adzuna_app_key" value="{{ adzuna_app_key or '' }}" placeholder="e.g. 9f8e7d..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <input type="password" name="adzuna_app_key" value="{{ adzuna_app_key or '' }}"
+                        placeholder="e.g. 9f8e7d..."
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
                 </div>
             </div>
         </div>
@@ -193,23 +228,27 @@
 
             <div class="space-y-3">
                 {% for conn in connectors %}
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div
+                    class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                     <div class="space-y-1">
                         <div class="flex items-center gap-2">
                             <span class="font-bold text-slate-900">{{ conn.display_name }}</span>
                             {% if conn.has_submit_api %}
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span
+                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                 Direct API Apply
                             </span>
                             {% else %}
-                            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                            <span
+                                class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
                                 Open Discovery Feed
                             </span>
                             {% endif %}
                         </div>
                         <p class="text-[11px] text-slate-500">
                             {% if conn.name == 'greenhouse' %}
-                            Queries public Greenhouse ATS boards for major tech firms with direct candidate POST apply support.
+                            Queries public Greenhouse ATS boards for major tech firms with direct candidate POST apply
+                            support.
                             {% elif conn.name == 'lever' %}
                             Queries public Lever postings API with automated direct candidate apply support.
                             {% elif conn.name == 'remotive' %}
@@ -223,14 +262,18 @@
                             {% endif %}
                         </p>
                         {% if conn.last_synced_at %}
-                        <p class="text-[10px] text-slate-400">Last synced: {{ conn.last_synced_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <p class="text-[10px] text-slate-400">Last synced: {{ conn.last_synced_at.strftime('%Y-%m-%d
+                            %H:%M:%S') }}</p>
                         {% endif %}
                     </div>
 
                     <div class="flex items-center gap-3">
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="connector_{{ conn.name }}" value="true" class="sr-only peer" {% if conn.enabled %}checked{% endif %}>
-                            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <input type="checkbox" name="connector_{{ conn.name }}" value="true" class="sr-only peer" {%
+                                if conn.enabled %}checked{% endif %}>
+                            <div
+                                class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600">
+                            </div>
                             <span class="ml-2 text-xs font-semibold text-slate-700">Enabled</span>
                         </label>
                     </div>
@@ -240,7 +283,8 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-2">
+            <button type="submit"
+                class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-2">
                 <i class="fa-solid fa-floppy-disk"></i>
                 <span>Save Connector Settings</span>
             </button>
@@ -249,14 +293,17 @@
 </div>
 
 <!-- ADD KEY MODAL -->
-<div id="addKeyModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+<div id="addKeyModal"
+    class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
             <div class="space-y-0.5">
                 <h3 class="text-base font-bold text-slate-900">Add Key to AI Pool</h3>
-                <p class="text-xs text-slate-500">Add any free key from Groq, OpenRouter, Gemini, Mistral, or Cerebras.</p>
+                <p class="text-xs text-slate-500">Add any free key from Groq, OpenRouter, Gemini, Mistral, or Cerebras.
+                </p>
             </div>
-            <button onclick="closeAddKeyModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors">
+            <button onclick="closeAddKeyModal()"
+                class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -264,7 +311,8 @@
         <div class="p-6 space-y-4 text-xs">
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Provider Preset</label>
-                <select id="modalKeyProvider" onchange="applyModalPreset()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium">
+                <select id="modalKeyProvider" onchange="applyModalPreset()"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium">
                     <option value="groq">⚡ Groq (Ultra-Fast &amp; Free - Llama 3.3 70B)</option>
                     <option value="openrouter">🌐 OpenRouter (Free Tier - Llama 3, DeepSeek R1, Mistral)</option>
                     <option value="sambanova">🚀 SambaNova AI (Fast RDU Inference - Llama 3.3 70B)</option>
@@ -274,36 +322,43 @@
                     <option value="cerebras">⚡ Cerebras (High-Throughput Free - Llama 3.1)</option>
                     <option value="custom">🛠 Custom / Local (Cloudflare, Ollama or OpenAI Compatible)</option>
                 </select>
-                <p class="text-[11px] text-slate-400 mt-1" id="modalPresetHelp">Free keys at console.groq.com (no credit card needed).</p>
+                <p class="text-[11px] text-slate-400 mt-1" id="modalPresetHelp">Free keys at console.groq.com (no credit
+                    card needed).</p>
             </div>
 
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Friendly Label / Nickname</label>
-                <input type="text" id="modalKeyLabel" placeholder="e.g. My Free Groq Key #1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                <input type="text" id="modalKeyLabel" placeholder="e.g. My Free Groq Key #1"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
             </div>
 
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">API Key *</label>
-                <input type="password" id="modalKeySecret" placeholder="Paste key string here..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                <input type="password" id="modalKeySecret" placeholder="Paste key string here..."
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Model Name / ID</label>
-                    <input type="text" id="modalKeyModel" value="llama-3.3-70b-versatile" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <input type="text" id="modalKeyModel" value="llama-3.3-70b-versatile"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Base URL</label>
-                    <input type="text" id="modalKeyBaseUrl" value="https://api.groq.com/openai/v1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <input type="text" id="modalKeyBaseUrl" value="https://api.groq.com/openai/v1"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
                 </div>
             </div>
         </div>
 
         <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
-            <button onclick="closeAddKeyModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+            <button onclick="closeAddKeyModal()"
+                class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
                 Cancel
             </button>
-            <button onclick="submitNewKey()" id="addKeySubmitBtn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-1.5">
+            <button onclick="submitNewKey()" id="addKeySubmitBtn"
+                class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-1.5">
                 <i class="fa-solid fa-plus"></i>
                 <span>Add to Pool</span>
             </button>
@@ -330,7 +385,7 @@
         },
         nvidia: {
             url: 'https://integrate.api.nvidia.com/v1',
-            model: 'meta/llama-3.3-70b-instruct',
+            model: 'minimaxai/minimax-m3.1-flash',
             help: 'Free keys at build.nvidia.com - 1,000 free inference credits on sign up.'
         },
         gemini: {
