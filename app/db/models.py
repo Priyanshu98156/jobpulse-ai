@@ -144,3 +144,140 @@ class AIKey(Base):
         self.api_key_masked = mask_secret(secret)
 
 
+# --- Normalized Structured Candidate Entities (Phase 1) ---
+
+class CandidateIdentity(Base):
+    __tablename__ = "candidate_identities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String(200), nullable=False)
+    email = Column(EncryptedText, nullable=False)
+    phone = Column(EncryptedText, nullable=False)
+    location = Column(String(200), default="")
+    citizenship = Column(String(100), default="India")
+    work_authorization = Column(String(250), default="Authorized in India / US Remote B2B")
+    notice_period = Column(String(100), default="Immediate / 30 Days")
+    expected_salary = Column(EncryptedText, default="Negotiable")
+    linkedin_url = Column(String(300), default="")
+    github_url = Column(String(300), default="")
+    portfolio_url = Column(String(300), default="")
+    summary = Column(Text, default="")
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    experiences = relationship("WorkExperience", back_populates="candidate", cascade="all, delete-orphan")
+    educations = relationship("Education", back_populates="candidate", cascade="all, delete-orphan")
+    projects = relationship("Project", back_populates="candidate", cascade="all, delete-orphan")
+    skills = relationship("Skill", back_populates="candidate", cascade="all, delete-orphan")
+    resume_versions = relationship("ResumeVersion", back_populates="candidate", cascade="all, delete-orphan")
+    search_profile = relationship("SearchProfile", back_populates="candidate", uselist=False, cascade="all, delete-orphan")
+    answers = relationship("AnswerBank", back_populates="candidate", cascade="all, delete-orphan")
+
+
+class WorkExperience(Base):
+    __tablename__ = "work_experiences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), index=True)
+    company = Column(String(200), nullable=False)
+    title = Column(String(200), nullable=False)
+    location = Column(String(150), default="Remote")
+    is_remote = Column(Boolean, default=True)
+    start_date = Column(String(50), nullable=False)
+    end_date = Column(String(50), nullable=True)
+    is_current = Column(Boolean, default=False)
+    description = Column(Text, default="")
+    bullet_points = Column(JSON, default=list)
+
+    candidate = relationship("CandidateIdentity", back_populates="experiences")
+
+
+class Education(Base):
+    __tablename__ = "educations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), index=True)
+    institution = Column(String(250), nullable=False)
+    degree = Column(String(200), nullable=False)
+    field_of_study = Column(String(200), nullable=False)
+    start_year = Column(Integer, nullable=True)
+    end_year = Column(Integer, nullable=True)
+    gpa = Column(String(50), default="")
+
+    candidate = relationship("CandidateIdentity", back_populates="educations")
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), index=True)
+    name = Column(String(200), nullable=False)
+    role = Column(String(150), default="Lead Developer")
+    technologies = Column(JSON, default=list)
+    url = Column(String(300), default="")
+    description = Column(Text, default="")
+    highlights = Column(JSON, default=list)
+
+    candidate = relationship("CandidateIdentity", back_populates="projects")
+
+
+class Skill(Base):
+    __tablename__ = "skills"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), index=True)
+    name = Column(String(150), nullable=False, index=True)
+    category = Column(String(100), default="languages")
+    years_experience = Column(Float, default=1.0)
+    claimable = Column(Boolean, default=True)
+
+    candidate = relationship("CandidateIdentity", back_populates="skills")
+
+
+class ResumeVersion(Base):
+    __tablename__ = "resume_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), index=True)
+    version_name = Column(String(150), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    content_text = Column(Text, default="")
+    content_hash = Column(String(64), default="", index=True)
+    is_master = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    candidate = relationship("CandidateIdentity", back_populates="resume_versions")
+
+
+class SearchProfile(Base):
+    __tablename__ = "search_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), unique=True)
+    target_titles = Column(JSON, default=list)
+    target_locations = Column(JSON, default=list)
+    contractor_acceptable = Column(Boolean, default=True)
+    min_hours_overlap = Column(Integer, default=4)
+    min_base_salary = Column(Integer, nullable=True)
+
+    candidate = relationship("CandidateIdentity", back_populates="search_profile")
+
+
+class AnswerBank(Base):
+    __tablename__ = "answer_bank"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), index=True)
+    question_pattern = Column(String(300), nullable=False, index=True)
+    answer_text = Column(Text, nullable=False)
+    category = Column(String(100), default="general")
+    is_factual = Column(Boolean, default=True)
+    source = Column(String(100), default="user_verified")
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    candidate = relationship("CandidateIdentity", back_populates="answers")
+
+
+

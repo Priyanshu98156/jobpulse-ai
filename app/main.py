@@ -27,9 +27,6 @@ from app.core.middleware import SecurityHeadersAndCSRFMiddleware
 setup_logging(level=logging.DEBUG if settings.DEBUG else logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
 def seed_initial_data():
     """Initializes default profile and connector rows if they don't exist."""
     from app.database import SessionLocal
