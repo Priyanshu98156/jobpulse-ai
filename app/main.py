@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from app.config import settings, BASE_DIR, UPLOADS_DIR
 from app.database import engine, get_db, Base
-from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, AIKey
+from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, AIKey, AnswerBank
 from app.connectors.manager import connector_manager
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.resume_service import resume_service
@@ -106,19 +106,23 @@ async def dashboard_page(
     applied_count = db.query(Job).filter(Job.status == "applied").count()
     interviewing_count = db.query(Job).filter(Job.status == "interviewing").count()
     skipped_count = db.query(Job).filter(Job.status == "skipped").count()
+    needs_look_count = db.query(Job).filter(Job.eligibility_status == "unclear").count()
 
     stats = {
         "total": total_count,
         "review_pending": review_pending_count,
         "applied": applied_count,
         "interviewing": interviewing_count,
-        "skipped": skipped_count
+        "skipped": skipped_count,
+        "needs_look": needs_look_count
     }
 
     # Base query
     query = db.query(Job)
 
-    if status and status != "all":
+    if status == "needs_look":
+        query = query.filter(Job.eligibility_status == "unclear")
+    elif status and status != "all":
         query = query.filter(Job.status == status)
 
     if q:
@@ -418,57 +422,40 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
     if req.cover_letter and pkg:
         pkg.tailored_cover_letter = req.cover_letter
 
-    conn = connector_manager.get_connector(job.platform)
+    platform = (job.platform or "").lower()
+    answers = {ans.question_pattern: ans.answer_text for ans in db.query(AnswerBank).all()}
 
-    # ATS Direct API submission
-    if conn and conn.has_submit_api:
-        resume_full_path = None
-        if profile and profile.master_resume_filename:
-            candidate_resume = UPLOADS_DIR / profile.master_resume_filename
-            if candidate_resume.exists():
-                resume_full_path = str(candidate_resume)
+    # Case 1: Workday / Hosted ATS Form -> Assisted Headed Browser with Structural Stop
+    if "workday" in platform or "workday" in job.url.lower():
+        job.status = "review_pending"
+        if pkg:
+            pkg.submission_method = "assisted_browser"
+            pkg.submission_status = "review_pending"
+            pkg.submitted_at = utc_now()
+        db.commit()
 
-        profile_dict = {
-            "full_name": profile.full_name if profile else "Applicant",
-            "email": profile.email if profile else "",
-            "phone": profile.phone if profile else "",
-            "linkedin_url": profile.linkedin_url if profile else "",
-            "github_url": profile.github_url if profile else "",
-            "portfolio_url": profile.portfolio_url if profile else "",
-            "work_authorization": profile.work_authorization if profile else "",
-            "notice_period": profile.notice_period if profile else "",
-            "expected_salary": profile.expected_salary if profile else "",
+        return {
+            "status": "ok",
+            "submission_method": "assisted_browser",
+            "message": "Workday assisted autofill initiated in headed browser. Structural stop is active before submit.",
+            "answers": answers,
+            "external_url": job.url
         }
 
-        result = await conn.submit_application(
-            job_external_id=job.external_id,
-            profile_data=profile_dict,
-            resume_path=resume_full_path,
-            cover_letter=req.cover_letter or (pkg.tailored_cover_letter if pkg else ""),
-            answers={}
-        )
-
-        if result.get("success"):
-            job.status = "applied"
-            if pkg:
-                pkg.submission_status = "submitted"
-                pkg.submitted_at = datetime.utcnow()
-                pkg.submission_response = str(result.get("raw_response", ""))
-            db.commit()
-            return {"status": "ok", "message": result.get("message", "Application submitted via ATS API!")}
-        else:
-            return {"status": "error", "message": result.get("message", "ATS submission failed.")}
-
-    # External Assisted Apply
+    # Case 2: LinkedIn, Naukri, or External Board -> Assist-Only Mode
+    # Zero DOM automation: Direct URL + 1-Click Clipboard Answers from Answer Bank
     job.status = "applied"
     if pkg:
+        pkg.submission_method = "clipboard_assist"
         pkg.submission_status = "external_opened"
-        pkg.submitted_at = datetime.utcnow()
+        pkg.submitted_at = utc_now()
     db.commit()
 
     return {
         "status": "ok",
-        "message": "Cover letter copied to clipboard! Opening direct application portal...",
+        "submission_method": "clipboard_assist",
+        "message": "Assist-only mode: Pre-matched answers ready for 1-click clipboard copy. Opening direct portal...",
+        "answers": answers,
         "external_url": job.url
     }
 
@@ -585,4 +572,57 @@ async def test_ai_key(key_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Key not found.")
     result = key_pool_service.test_key(key)
     return result
+
+# --- Answer Bank Endpoints (Phase 5 Assist-Only Mode) ---
+
+class AddAnswerRequest(BaseModel):
+    question_pattern: str
+    answer_text: str
+    category: Optional[str] = "general"
+    is_factual: Optional[bool] = True
+
+@app.get("/api/answers")
+async def list_answers(db: Session = Depends(get_db)):
+    """List pre-verified answers from the Answer Bank."""
+    answers = db.query(AnswerBank).order_by(AnswerBank.id.desc()).all()
+    return [
+        {
+            "id": a.id,
+            "question_pattern": a.question_pattern,
+            "answer_text": a.answer_text,
+            "category": a.category,
+            "is_factual": a.is_factual,
+            "source": a.source
+        }
+        for a in answers
+    ]
+
+@app.post("/api/answers")
+async def create_answer(req: AddAnswerRequest, db: Session = Depends(get_db)):
+    """Add a new answer to the Answer Bank."""
+    if not req.question_pattern.strip() or not req.answer_text.strip():
+        raise HTTPException(status_code=400, detail="Pattern and answer cannot be empty.")
+
+    new_ans = AnswerBank(
+        question_pattern=req.question_pattern.strip(),
+        answer_text=req.answer_text.strip(),
+        category=req.category or "general",
+        is_factual=req.is_factual if req.is_factual is not None else True,
+        source="user_verified"
+    )
+    db.add(new_ans)
+    db.commit()
+    db.refresh(new_ans)
+    return {"status": "ok", "message": "Answer added to bank!", "id": new_ans.id}
+
+@app.delete("/api/answers/{answer_id}")
+async def delete_answer(answer_id: int, db: Session = Depends(get_db)):
+    """Delete an answer from the Answer Bank."""
+    ans = db.query(AnswerBank).filter(AnswerBank.id == answer_id).first()
+    if not ans:
+        raise HTTPException(status_code=404, detail="Answer not found.")
+    db.delete(ans)
+    db.commit()
+    return {"status": "ok", "message": "Answer removed from bank."}
+
 
