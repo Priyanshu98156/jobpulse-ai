@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 import httpx
 from sqlalchemy.orm import Session
@@ -10,12 +10,63 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+class RateLimitException(Exception):
+    def __init__(self, message: str, cooldown_seconds: int = 900):
+        super().__init__(message)
+        self.cooldown_seconds = cooldown_seconds
+
+# Strict allowlist of vetted free/economical models per provider
+PROVIDER_ALLOWLISTS = {
+    "groq": [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "qwen-2.5-32b",
+        "mistral-saba-24b"
+    ],
+    "openrouter": [
+        "nvidia/nemotron-3.5-lightning:free",
+        "liquid/lfm-2.5-2.6b:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemini-2.0-flash-exp:free"
+    ],
+    "gemini": [
+        "gemini-2.5-flash",
+        "gemini-1.5-flash",
+        "gemini-2.0-flash"
+    ],
+    "sambanova": [
+        "Meta-Llama-3.3-70B-Instruct",
+        "DeepSeek-V3.1",
+        "MiniMax-M3.1-Flash"
+    ],
+    "nvidia": [
+        "minimaxai/minimax-m3.1-flash",
+        "meta/llama-3.3-70b-instruct"
+    ],
+    "mistral": [
+        "mistral-small-latest",
+        "open-mistral-nemo"
+    ],
+    "cerebras": [
+        "llama3.1-8b",
+        "llama-3.3-70b"
+    ],
+    "cohere": [
+        "command-a-03-2025",
+        "c4ai-aya-expanse-32b"
+    ],
+    "custom": [
+        "llama3",
+        "llama3.2"
+    ]
+}
+
 # Provider default presets with fallback chains
 PROVIDER_PRESETS = {
     "groq": {
         "base_url": "https://api.groq.com/openai/v1",
-        "default_model": "qwen/qwen3.8-27b",
-        "fallbacks": ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "llama-3.1-8b-instant"]
+        "default_model": "llama-3.3-70b-versatile",
+        "fallbacks": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen-2.5-32b"]
     },
     "openrouter": {
         "base_url": "https://openrouter.ai/api/v1",
@@ -30,7 +81,7 @@ PROVIDER_PRESETS = {
     "nvidia": {
         "base_url": "https://integrate.api.nvidia.com/v1",
         "default_model": "minimaxai/minimax-m3.1-flash",
-        "fallbacks": ["minimaxai/minimax-m3.1-flash", "meta/llama-guard-4-12b"]
+        "fallbacks": ["minimaxai/minimax-m3.1-flash", "meta/llama-3.3-70b-instruct"]
     },
     "mistral": {
         "base_url": "https://api.mistral.ai/v1",
@@ -67,7 +118,7 @@ class KeyPoolService:
     def get_healthy_keys(self, db: Session) -> List[AIKey]:
         all_enabled = db.query(AIKey).filter(AIKey.enabled == True).all()
         healthy = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         changed = False
 
         for k in all_enabled:
@@ -107,58 +158,39 @@ class KeyPoolService:
 
     def _auto_discover_new_model(self, key: AIKey, db: Optional[Session] = None) -> Optional[str]:
         """
-        Dynamically queries the provider's /models endpoint on the fly
-        to discover an active model when the current model is deprecated or not found.
+        Dynamically queries the provider's /models endpoint on the fly,
+        strictly intersecting with PROVIDER_ALLOWLISTS to ensure only pre-vetted,
+        economical chat models are selected (preventing quiet paid model traps).
         """
         provider = key.provider.lower().strip()
+        allowlist = PROVIDER_ALLOWLISTS.get(provider, [])
         base_url = key.base_url or PROVIDER_PRESETS.get(provider, {}).get("base_url", "")
-        if not base_url:
-            return None
 
-        models_endpoint = f"{base_url.rstrip('/')}/models"
-        headers = {"Authorization": f"Bearer {key.api_key}"}
+        if base_url:
+            models_endpoint = f"{base_url.rstrip('/')}/models"
+            headers = {"Authorization": f"Bearer {key.api_key}"}
 
-        try:
-            with httpx.Client(timeout=10.0) as client:
-                res = client.get(models_endpoint, headers=headers)
-                if res.status_code == 200:
-                    data = res.json().get("data", [])
-                    available_ids = [m.get("id") for m in data if isinstance(m, dict) and m.get("id")]
-                    
-                    # 1. Check if any preset fallback model exists
-                    fallbacks = PROVIDER_PRESETS.get(provider, {}).get("fallbacks", [])
-                    for fb in fallbacks:
-                        if fb in available_ids and fb != key.model:
-                            logger.info(f"Self-Healing: Selected preset fallback model '{fb}' for provider {provider}")
-                            self._update_key_model(key, fb, db)
-                            return fb
+            try:
+                with httpx.Client(timeout=10.0) as client:
+                    res = client.get(models_endpoint, headers=headers)
+                    if res.status_code == 200:
+                        data = res.json().get("data", [])
+                        available_ids = [m.get("id") for m in data if isinstance(m, dict) and m.get("id")]
+                        
+                        # Strict Allowlist Selection: Pick the first allowlisted model present on endpoint
+                        for vetted_model in allowlist:
+                            if vetted_model in available_ids and vetted_model != key.model:
+                                logger.info(f"Self-Healing: Selected allowlisted model '{vetted_model}' for {provider}")
+                                self._update_key_model(key, vetted_model, db)
+                                return vetted_model
+            except Exception as e:
+                logger.warning(f"Allowlist model discovery query failed on {provider}: {e}")
 
-                    # 2. Filter out audio/whisper/guard models, prioritize instruct/chat/flash models
-                    chat_candidates = []
-                    for mid in available_ids:
-                        mid_l = mid.lower()
-                        # Ignore non-text models
-                        if any(x in mid_l for x in ["whisper", "embed", "guard", "audio", "vision-detector", "clip"]):
-                            continue
-                        # If OpenRouter, prefer free models
-                        if provider == "openrouter" and ":free" not in mid_l:
-                            continue
-                        chat_candidates.append(mid)
-
-                    if chat_candidates:
-                        selected = chat_candidates[0]
-                        logger.info(f"Self-Healing: Discovered dynamic active model '{selected}' for {key.label}")
-                        self._update_key_model(key, selected, db)
-                        return selected
-        except Exception as e:
-            logger.warning(f"Auto-discovery failed on {provider}: {e}")
-
-        # Fallback to local preset fallback list
-        fallbacks = PROVIDER_PRESETS.get(provider, {}).get("fallbacks", [])
-        for fb in fallbacks:
-            if fb != key.model:
-                self._update_key_model(key, fb, db)
-                return fb
+        # Fallback strictly within allowlist
+        for fallback in allowlist:
+            if fallback != key.model:
+                self._update_key_model(key, fallback, db)
+                return fallback
 
         return None
 
@@ -267,7 +299,7 @@ class KeyPoolService:
             tried_key_ids.add(selected_key.id)
 
             selected_key.total_requests += 1
-            selected_key.last_used_at = datetime.utcnow()
+            selected_key.last_used_at = datetime.now(timezone.utc)
 
             try:
                 logger.info(f"Routing AI request to key #{selected_key.id} [{selected_key.label}] ({selected_key.provider}:{selected_key.model})")
@@ -280,7 +312,7 @@ class KeyPoolService:
             except RateLimitException as rle:
                 logger.warning(f"Rate limit hit on key #{selected_key.id} [{selected_key.label}]: {rle}. Moving to cooldown for {rle.cooldown_seconds}s and failing over...")
                 selected_key.is_in_cooldown = True
-                selected_key.cooldown_until = datetime.utcnow() + timedelta(seconds=rle.cooldown_seconds)
+                selected_key.cooldown_until = datetime.now(timezone.utc) + timedelta(seconds=rle.cooldown_seconds)
                 selected_key.rate_limit_hits += 1
                 selected_key.last_error_message = str(rle)
                 db.commit()
@@ -291,7 +323,7 @@ class KeyPoolService:
                 if "429" in err_msg or "resource_exhausted" in err_msg.lower() or "quota" in err_msg.lower():
                     logger.warning(f"Quota error on key #{selected_key.id} [{selected_key.label}]: {err_msg}. Moving to cooldown and failing over...")
                     selected_key.is_in_cooldown = True
-                    selected_key.cooldown_until = datetime.utcnow() + timedelta(minutes=15)
+                    selected_key.cooldown_until = datetime.now(timezone.utc) + timedelta(minutes=15)
                     selected_key.rate_limit_hits += 1
                     selected_key.last_error_message = err_msg
                     db.commit()
