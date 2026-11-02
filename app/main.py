@@ -20,9 +20,11 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.resume_service import resume_service
 from app.services.ai_service import ai_service
 from app.services.key_pool_service import key_pool_service, PROVIDER_PRESETS
+from app.core.logging import setup_logging
+from app.core.middleware import SecurityHeadersAndCSRFMiddleware
 
-# Logging setup
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+# Setup enterprise structured logging with PII/secret auto-redaction
+setup_logging(level=logging.DEBUG if settings.DEBUG else logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create tables
@@ -82,6 +84,7 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
 
 app = FastAPI(title="JobPulse AI Assistant", lifespan=lifespan)
+app.add_middleware(SecurityHeadersAndCSRFMiddleware)
 
 # Templates
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -532,11 +535,11 @@ async def add_ai_key(req: AddKeyRequest, db: Session = Depends(get_db)):
     new_key = AIKey(
         label=req.label.strip() or f"{prov.title()} Key",
         provider=prov,
-        api_key=req.api_key.strip(),
         model=model,
         base_url=base_url,
         enabled=True
     )
+    new_key.set_secret(req.api_key.strip())
     db.add(new_key)
     db.commit()
     db.refresh(new_key)
@@ -548,6 +551,9 @@ async def delete_ai_key(key_id: int, db: Session = Depends(get_db)):
     key = db.query(AIKey).filter(AIKey.id == key_id).first()
     if not key:
         raise HTTPException(status_code=404, detail="Key not found.")
+    if key.keyring_id:
+        from app.core.security import delete_keyring_secret, KEYRING_SERVICE_VAULT
+        delete_keyring_secret(KEYRING_SERVICE_VAULT, key.keyring_id)
     db.delete(key)
     db.commit()
     return {"status": "ok", "message": "Key removed from pool."}

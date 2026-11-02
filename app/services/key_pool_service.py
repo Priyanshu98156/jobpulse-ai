@@ -93,11 +93,11 @@ class KeyPoolService:
             new_key = AIKey(
                 label=f"Default {prov.title()} Key (from .env)",
                 provider=prov,
-                api_key=env_key,
                 model=model,
                 base_url=base_url,
                 enabled=True
             )
+            new_key.set_secret(env_key)
             db.add(new_key)
             db.commit()
             db.refresh(new_key)
