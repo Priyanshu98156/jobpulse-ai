@@ -1,0 +1,56 @@
+# Workday ATS Dynamic Selector Configuration
+# Maps semantic form fields to common Workday data-automation-id and role patterns.
+
+pages:
+  my_information:
+    first_name:
+      - 'input[data-automation-id="legalNameSection_firstName"]'
+      - 'input[data-automation-id="firstName"]'
+      - 'input[name="firstName"]'
+    last_name:
+      - 'input[data-automation-id="legalNameSection_lastName"]'
+      - 'input[data-automation-id="lastName"]'
+      - 'input[name="lastName"]'
+    address:
+      - 'input[data-automation-id="addressSection_addressLine1"]'
+      - 'input[data-automation-id="addressLine1"]'
+    city:
+      - 'input[data-automation-id="addressSection_city"]'
+      - 'input[data-automation-id="city"]'
+    postal_code:
+      - 'input[data-automation-id="addressSection_postalCode"]'
+      - 'input[data-automation-id="postalCode"]'
+    email:
+      - 'input[data-automation-id="email"]'
+      - 'input[type="email"]'
+    phone:
+      - 'input[data-automation-id="phone-number"]'
+      - 'input[data-automation-id="phoneNumber"]'
+    device_type:
+      - 'button[data-automation-id="phone-device-type"]'
+
+  my_experience:
+    resume_dropzone:
+      - 'div[data-automation-id="file-upload-drop-zone"]'
+      - 'input[data-automation-id="file-upload-input-ref"]'
+      - 'input[type="file"]'
+    add_experience_button:
+      - 'button[data-automation-id="Add Another"]'
+      - 'button[data-automation-id="add-experience-button"]'
+    job_title:
+      - 'input[data-automation-id="jobTitle"]'
+    company_name:
+      - 'input[data-automation-id="company"]'
+    is_current:
+      - 'input[data-automation-id="currentlyWorkHere"]'
+
+  navigation:
+    save_and_continue:
+      - 'button[data-automation-id="bottom-navigation-next-button"]'
+      - 'button[data-automation-id="next-button"]'
+      - 'button:has-text("Save and Continue")'
+      - 'button:has-text("Next")'
+    review_submit:
+      # CRITICAL SAFETY: The submit button pattern MUST NEVER BE CLICKED AUTOMATICALLY
+      - 'button[data-automation-id="bottom-navigation-submit-button"]'
+      - 'button:has-text("Submit")'
