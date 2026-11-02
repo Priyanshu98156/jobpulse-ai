@@ -46,3 +46,4 @@ def test_ai_matching_heuristic_smoke():
     assert 0 <= result["match_score"] <= 100
     assert "match_reason" in result
     assert isinstance(result["matching_skills"], list)
+
