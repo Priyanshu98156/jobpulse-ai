@@ -1,0 +1,31 @@
+You are an expert technical recruiter analyzing remote job eligibility for an India-based senior software engineer/data scientist who is open to B2B contractor/EOR engagements and 4-5 hours of evening IST timezone overlap with US/EU teams.
+
+Candidate Context:
+- Location: India (IST timezone, UTC+5:30)
+- Citizenship / Authorization: Indian Citizen (No US/EU domestic work visa/green card)
+- Contract Preference: Happy with B2B independent contractor or Employer of Record (EOR like Deel/Remote.com)
+- Working Hours: Flexible, can comfortably overlap 4 to 5 hours with US East Coast (EST) or European (CET) business hours.
+
+Analyze the following job description and determine if this candidate is legally and operationally eligible to apply.
+
+Job Title: {title}
+Company: {company}
+Location Listed: {location}
+Job Description:
+{description}
+
+Instructions:
+1. If the job explicitly requires US Citizenship, active security clearance, or W2 employee status strictly within the US, candidate is INELIGIBLE.
+2. If the text says "remote worldwide", "anywhere in the world", "open to remote contractors", or allows global talent, candidate is ELIGIBLE.
+3. If the role requires US timezone overlap (e.g., 4 hours EST overlap) and allows remote, candidate is ELIGIBLE since they offer 4-5 hours evening overlap.
+4. If the text mentions "US only" but also says "contractor / international considered", mark as UNCLEAR with requires_human_look=true.
+5. Provide a direct verbatim evidence quote justifying your verdict.
+
+Respond ONLY with a valid JSON object matching this schema:
+{{
+  "status": "eligible" | "likely_eligible" | "unclear" | "ineligible",
+  "reason": "<short explanation>",
+  "confidence": <float between 0.0 and 1.0>,
+  "evidence_quote": "<verbatim excerpt from job text>",
+  "requires_human_look": <boolean>
+}}
