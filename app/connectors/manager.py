@@ -1,10 +1,10 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
-from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting
+from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, utc_now
 from app.connectors.remotive import RemotiveConnector
 from app.connectors.arbeitnow import ArbeitnowConnector
 from app.connectors.themuse import TheMuseConnector
@@ -12,6 +12,8 @@ from app.connectors.greenhouse import GreenhouseConnector
 from app.connectors.lever import LeverConnector
 from app.connectors.adzuna import AdzunaConnector
 from app.services.ai_service import ai_service
+from app.services.eligibility_service import eligibility_service
+from app.domain.models import EligibilityStatus
 from app.services.notifier import desktop_notifier
 from app.config import settings
 
@@ -71,7 +73,7 @@ class ConnectorManager:
             # Update connector setting timestamp
             db_setting = db.query(ConnectorSetting).filter(ConnectorSetting.name == connector_key).first()
             if db_setting:
-                db_setting.last_synced_at = datetime.utcnow()
+                db_setting.last_synced_at = utc_now()
                 db.commit()
 
             for job_data in jobs_list:
@@ -83,7 +85,35 @@ class ConnectorManager:
                 if existing:
                     continue
 
-                # AI Matching & Scoring
+                # Step 1: Remote Eligibility Gate (4 Layers)
+                el_verdict = eligibility_service.evaluate_job(
+                    title=job_data["title"],
+                    company=job_data["company"],
+                    location=job_data["location"],
+                    description=job_data["description"]
+                )
+
+                # If hard ineligible, drop to skipped to save AI scoring tokens
+                if el_verdict.status == EligibilityStatus.INELIGIBLE:
+                    new_job = Job(
+                        external_id=ext_id,
+                        platform=platform,
+                        title=job_data["title"],
+                        company=job_data["company"],
+                        location=job_data["location"],
+                        job_type=job_data["job_type"],
+                        salary_range=job_data["salary_range"],
+                        url=job_data["url"],
+                        description=job_data["description"],
+                        date_posted=job_data.get("date_posted", utc_now()),
+                        eligibility_status="ineligible",
+                        eligibility_evidence=el_verdict.reason,
+                        status="skipped"
+                    )
+                    db.add(new_job)
+                    continue
+
+                # Step 2: AI Matching & Scoring for Eligible & Unclear (Needs a Look) Jobs
                 profile_summary = profile.summary if profile else ""
                 skills_str = profile.skills if profile else ""
                 resume_text = profile.master_resume_text if profile else ""
@@ -93,13 +123,17 @@ class ConnectorManager:
                     job_description=job_data["description"],
                     profile_summary=profile_summary,
                     skills_str=skills_str,
-                    resume_text=resume_text
+                    resume_text=resume_text,
+                    db=db
                 )
 
                 score = match_result.get("match_score", 50)
                 reason = match_result.get("match_reason", "")
                 matching_skills = match_result.get("matching_skills", [])
                 missing_keywords = match_result.get("missing_keywords", [])
+
+                is_unclear = (el_verdict.status == EligibilityStatus.UNCLEAR or el_verdict.requires_human_look)
+                initial_status = "review_pending" if (score >= 70 or is_unclear) else "discovered"
 
                 new_job = Job(
                     external_id=ext_id,
@@ -111,12 +145,14 @@ class ConnectorManager:
                     salary_range=job_data["salary_range"],
                     url=job_data["url"],
                     description=job_data["description"],
-                    date_posted=job_data.get("date_posted", datetime.utcnow()),
+                    date_posted=job_data.get("date_posted", utc_now()),
+                    eligibility_status="unclear" if is_unclear else "eligible",
+                    eligibility_evidence=el_verdict.reason,
                     match_score=score,
                     match_reason=reason,
                     matching_skills=matching_skills,
                     missing_keywords=missing_keywords,
-                    status="review_pending" if score >= 70 else "discovered"
+                    status=initial_status
                 )
                 db.add(new_job)
                 db.flush() # get new_job.id
