@@ -7,9 +7,9 @@ from app.connectors.base import BaseConnector
 
 logger = logging.getLogger(__name__)
 
-# Default prominent tech companies using Greenhouse
+# Default prominent tech companies with verified active Greenhouse boards
 DEFAULT_GREENHOUSE_BOARDS = [
-    "github", "figma", "discord", "reddit", "elastic", "canonical", "hashicorp", "automattic"
+    "canonical", "cloudflare", "datadog", "figma", "discord", "reddit", "elastic", "gitlab", "pinterest"
 ]
 
 class GreenhouseConnector(BaseConnector):

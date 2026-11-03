@@ -1,6 +1,7 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 sqlalchemy>=2.0.28
+alembic>=1.13.0
 pydantic>=2.6.0
 pydantic-settings>=2.2.0
 python-dotenv>=1.0.1
@@ -12,4 +13,10 @@ python-multipart>=0.0.9
 pypdf>=4.1.0
 apscheduler>=3.10.4
 plyer>=2.1.0
-
+keyring>=24.3.0
+cryptography>=42.0.0
+structlog>=24.1.0
+pytest>=8.0.0
+respx>=0.21.0
+playwright>=1.40.0
+pyyaml>=6.0.0

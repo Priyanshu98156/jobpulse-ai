@@ -14,19 +14,18 @@ from pydantic import BaseModel
 
 from app.config import settings, BASE_DIR, UPLOADS_DIR
 from app.database import engine, get_db, Base
-from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, AIKey
+from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, AIKey, AnswerBank, utc_now
 from app.connectors.manager import connector_manager
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.resume_service import resume_service
 from app.services.ai_service import ai_service
 from app.services.key_pool_service import key_pool_service, PROVIDER_PRESETS
+from app.core.logging import setup_logging
+from app.core.middleware import SecurityHeadersAndCSRFMiddleware
 
-# Logging setup
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+# Setup enterprise structured logging with PII/secret auto-redaction
+setup_logging(level=logging.DEBUG if settings.DEBUG else logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Create tables
-Base.metadata.create_all(bind=engine)
 
 def seed_initial_data():
     """Initializes default profile and connector rows if they don't exist."""
@@ -57,6 +56,7 @@ def seed_initial_data():
             ("remotive", "Remotive (Remote Tech & Data)", True),
             ("arbeitnow", "Arbeitnow (Global & Remote Tech)", True),
             ("themuse", "The Muse (Top Tech & Enterprise Companies)", True),
+            ("himalayas", "Himalayas (Global Remote Tech Jobs)", True),
             ("greenhouse", "Greenhouse ATS (Direct Boards & API Apply)", True),
             ("lever", "Lever ATS (Direct Postings & API Apply)", True),
             ("adzuna", "Adzuna (Global Job Search API)", False)
@@ -82,6 +82,7 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
 
 app = FastAPI(title="JobPulse AI Assistant", lifespan=lifespan)
+app.add_middleware(SecurityHeadersAndCSRFMiddleware)
 
 # Templates
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -106,19 +107,23 @@ async def dashboard_page(
     applied_count = db.query(Job).filter(Job.status == "applied").count()
     interviewing_count = db.query(Job).filter(Job.status == "interviewing").count()
     skipped_count = db.query(Job).filter(Job.status == "skipped").count()
+    needs_look_count = db.query(Job).filter(Job.eligibility_status == "unclear").count()
 
     stats = {
         "total": total_count,
         "review_pending": review_pending_count,
         "applied": applied_count,
         "interviewing": interviewing_count,
-        "skipped": skipped_count
+        "skipped": skipped_count,
+        "needs_look": needs_look_count
     }
 
     # Base query
     query = db.query(Job)
 
-    if status and status != "all":
+    if status == "needs_look":
+        query = query.filter(Job.eligibility_status == "unclear")
+    elif status and status != "all":
         query = query.filter(Job.status == status)
 
     if q:
@@ -173,7 +178,7 @@ async def save_profile(
     github_url: Optional[str] = Form(""),
     target_titles: Optional[str] = Form(""),
     skills: Optional[str] = Form(""),
-    years_of_experience: float = Form(3.0),
+    years_of_experience: Optional[str] = Form("3.0"),
     work_authorization: Optional[str] = Form(""),
     notice_period: Optional[str] = Form(""),
     expected_salary: Optional[str] = Form(""),
@@ -194,15 +199,18 @@ async def save_profile(
     profile.github_url = github_url or ""
     profile.target_titles = target_titles or ""
     profile.skills = skills or ""
-    profile.years_of_experience = years_of_experience
+    try:
+        profile.years_of_experience = float(years_of_experience) if years_of_experience else 3.0
+    except (ValueError, TypeError):
+        profile.years_of_experience = 3.0
     profile.work_authorization = work_authorization or ""
     profile.notice_period = notice_period or ""
     profile.expected_salary = expected_salary or ""
     profile.summary = summary or ""
 
     # Handle resume upload if provided
-    if resume_file and resume_file.filename and resume_file.filename.endswith(".pdf"):
-        saved_filename = f"master_resume_{int(datetime.utcnow().timestamp())}.pdf"
+    if resume_file and resume_file.filename and resume_file.filename.lower().endswith(".pdf"):
+        saved_filename = f"master_resume_{int(utc_now().timestamp())}.pdf"
         target_path = UPLOADS_DIR / saved_filename
         with open(target_path, "wb") as buffer:
             shutil.copyfileobj(resume_file.file, buffer)
@@ -282,13 +290,17 @@ async def save_settings(
 ):
     form_data = await request.form()
 
-    # Update runtime and env settings
-    settings.AI_PROVIDER = (ai_provider or "gemini").lower().strip()
-    key = (ai_api_key or gemini_api_key or "").strip()
-    settings.AI_API_KEY = key
-    settings.GEMINI_API_KEY = key
-    settings.AI_MODEL = (ai_model or "").strip()
-    settings.AI_BASE_URL = (ai_base_url or "").strip()
+    # Only update runtime AI settings if explicitly provided in form
+    if ai_provider and "ai_provider" in form_data:
+        settings.AI_PROVIDER = ai_provider.lower().strip()
+    submitted_key = (ai_api_key or gemini_api_key or "").strip()
+    if submitted_key:
+        settings.AI_API_KEY = submitted_key
+        settings.GEMINI_API_KEY = submitted_key
+    if ai_model and "ai_model" in form_data:
+        settings.AI_MODEL = ai_model.strip()
+    if ai_base_url and "ai_base_url" in form_data:
+        settings.AI_BASE_URL = ai_base_url.strip()
 
     settings.ADZUNA_APP_ID = (adzuna_app_id or "").strip()
     settings.ADZUNA_APP_KEY = (adzuna_app_key or "").strip()
@@ -418,10 +430,29 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
     if req.cover_letter and pkg:
         pkg.tailored_cover_letter = req.cover_letter
 
-    conn = connector_manager.get_connector(job.platform)
+    platform = (job.platform or "").lower()
+    answers = {ans.question_pattern: ans.answer_text for ans in db.query(AnswerBank).all()}
 
-    # ATS Direct API submission
-    if conn and conn.has_submit_api:
+    # Case 1: Workday / Hosted ATS Form -> Assisted Headed Browser with Structural Stop
+    if "workday" in platform or "workday" in job.url.lower():
+        job.status = "review_pending"
+        if pkg:
+            pkg.submission_method = "assisted_browser"
+            pkg.submission_status = "review_pending"
+            pkg.submitted_at = utc_now()
+        db.commit()
+
+        return {
+            "status": "ok",
+            "submission_method": "assisted_browser",
+            "message": "Workday assisted autofill initiated in headed browser. Structural stop is active before submit.",
+            "answers": answers,
+            "external_url": job.url
+        }
+
+    # Case 2: Direct ATS API submission (Greenhouse / Lever) with graceful fallback
+    conn = connector_manager.get_connector(platform)
+    if conn and getattr(conn, "has_submit_api", False):
         resume_full_path = None
         if profile and profile.master_resume_filename:
             candidate_resume = UPLOADS_DIR / profile.master_resume_filename
@@ -440,46 +471,61 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
             "expected_salary": profile.expected_salary if profile else "",
         }
 
-        result = await conn.submit_application(
-            job_external_id=job.external_id,
-            profile_data=profile_dict,
-            resume_path=resume_full_path,
-            cover_letter=req.cover_letter or (pkg.tailored_cover_letter if pkg else ""),
-            answers={}
-        )
+        try:
+            result = await conn.submit_application(
+                job_external_id=job.external_id,
+                profile_data=profile_dict,
+                resume_path=resume_full_path,
+                cover_letter=req.cover_letter or (pkg.tailored_cover_letter if pkg else ""),
+                answers=answers
+            )
+            if result.get("success"):
+                job.status = "applied"
+                if pkg:
+                    pkg.submission_method = "api"
+                    pkg.submission_status = "submitted"
+                    pkg.submitted_at = utc_now()
+                    pkg.submission_response = str(result.get("raw_response", ""))
+                db.commit()
+                return {
+                    "status": "ok",
+                    "submission_method": "api",
+                    "message": result.get("message", "Application submitted via ATS API!"),
+                    "external_url": job.url
+                }
+        except Exception as e:
+            logger.warning(f"ATS API submit encountered error: {e}. Falling back to assisted apply.")
 
-        if result.get("success"):
-            job.status = "applied"
-            if pkg:
-                pkg.submission_status = "submitted"
-                pkg.submitted_at = datetime.utcnow()
-                pkg.submission_response = str(result.get("raw_response", ""))
-            db.commit()
-            return {"status": "ok", "message": result.get("message", "Application submitted via ATS API!")}
-        else:
-            return {"status": "error", "message": result.get("message", "ATS submission failed.")}
-
-    # External Assisted Apply
+    # Case 3: LinkedIn, Naukri, or External Board -> Assist-Only Mode
+    # Zero DOM automation: Direct URL + 1-Click Clipboard Answers from Answer Bank
     job.status = "applied"
     if pkg:
+        pkg.submission_method = "clipboard_assist"
         pkg.submission_status = "external_opened"
-        pkg.submitted_at = datetime.utcnow()
+        pkg.submitted_at = utc_now()
     db.commit()
 
     return {
         "status": "ok",
-        "message": "Cover letter copied to clipboard! Opening direct application portal...",
+        "submission_method": "clipboard_assist",
+        "message": "Assist-only mode: Pre-matched answers ready for 1-click clipboard copy. Opening direct portal...",
+        "answers": answers,
         "external_url": job.url
     }
 
 class StatusRequest(BaseModel):
     status: str
 
+ALLOWED_STATUSES = {"discovered", "review_pending", "applied", "interviewing", "skipped", "rejected"}
+
 @app.post("/api/job/{job_id}/status")
 async def update_status(job_id: int, req: StatusRequest, db: Session = Depends(get_db)):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    if req.status not in ALLOWED_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid status '{req.status}'. Must be one of: {', '.join(sorted(ALLOWED_STATUSES))}")
 
     job.status = req.status
     db.commit()
@@ -532,11 +578,11 @@ async def add_ai_key(req: AddKeyRequest, db: Session = Depends(get_db)):
     new_key = AIKey(
         label=req.label.strip() or f"{prov.title()} Key",
         provider=prov,
-        api_key=req.api_key.strip(),
         model=model,
         base_url=base_url,
         enabled=True
     )
+    new_key.set_secret(req.api_key.strip())
     db.add(new_key)
     db.commit()
     db.refresh(new_key)
@@ -548,6 +594,9 @@ async def delete_ai_key(key_id: int, db: Session = Depends(get_db)):
     key = db.query(AIKey).filter(AIKey.id == key_id).first()
     if not key:
         raise HTTPException(status_code=404, detail="Key not found.")
+    if key.keyring_id:
+        from app.core.security import delete_keyring_secret, KEYRING_SERVICE_VAULT
+        delete_keyring_secret(KEYRING_SERVICE_VAULT, key.keyring_id)
     db.delete(key)
     db.commit()
     return {"status": "ok", "message": "Key removed from pool."}
@@ -582,4 +631,57 @@ async def test_ai_key(key_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Key not found.")
     result = key_pool_service.test_key(key)
     return result
+
+# --- Answer Bank Endpoints (Phase 5 Assist-Only Mode) ---
+
+class AddAnswerRequest(BaseModel):
+    question_pattern: str
+    answer_text: str
+    category: Optional[str] = "general"
+    is_factual: Optional[bool] = True
+
+@app.get("/api/answers")
+async def list_answers(db: Session = Depends(get_db)):
+    """List pre-verified answers from the Answer Bank."""
+    answers = db.query(AnswerBank).order_by(AnswerBank.id.desc()).all()
+    return [
+        {
+            "id": a.id,
+            "question_pattern": a.question_pattern,
+            "answer_text": a.answer_text,
+            "category": a.category,
+            "is_factual": a.is_factual,
+            "source": a.source
+        }
+        for a in answers
+    ]
+
+@app.post("/api/answers")
+async def create_answer(req: AddAnswerRequest, db: Session = Depends(get_db)):
+    """Add a new answer to the Answer Bank."""
+    if not req.question_pattern.strip() or not req.answer_text.strip():
+        raise HTTPException(status_code=400, detail="Pattern and answer cannot be empty.")
+
+    new_ans = AnswerBank(
+        question_pattern=req.question_pattern.strip(),
+        answer_text=req.answer_text.strip(),
+        category=req.category or "general",
+        is_factual=req.is_factual if req.is_factual is not None else True,
+        source="user_verified"
+    )
+    db.add(new_ans)
+    db.commit()
+    db.refresh(new_ans)
+    return {"status": "ok", "message": "Answer added to bank!", "id": new_ans.id}
+
+@app.delete("/api/answers/{answer_id}")
+async def delete_answer(answer_id: int, db: Session = Depends(get_db)):
+    """Delete an answer from the Answer Bank."""
+    ans = db.query(AnswerBank).filter(AnswerBank.id == answer_id).first()
+    if not ans:
+        raise HTTPException(status_code=404, detail="Answer not found.")
+    db.delete(ans)
+    db.commit()
+    return {"status": "ok", "message": "Answer removed from bank."}
+
 

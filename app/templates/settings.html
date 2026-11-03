@@ -81,11 +81,7 @@
                         </td>
                         <td class="py-3 px-3 font-mono text-[11px] text-slate-600">{{ k.model or 'default' }}</td>
                         <td class="py-3 px-3 font-mono text-[11px] text-slate-500">
-                            {% if k.api_key|length > 10 %}
-                            {{ k.api_key[:4] }}••••••••{{ k.api_key[-4:] }}
-                            {% else %}
-                            ••••••••
-                            {% endif %}
+                            {{ k.api_key_masked or '••••••••' }}
                         </td>
                         <td class="py-3 px-3">
                             {% if not k.enabled %}
@@ -172,6 +168,7 @@
 
     <!-- MAIN CONFIGURATION FORM -->
     <form method="POST" action="/settings" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
         <!-- Automation & Scheduler Settings -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
             <h2 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
@@ -262,8 +259,7 @@
                             {% endif %}
                         </p>
                         {% if conn.last_synced_at %}
-                        <p class="text-[10px] text-slate-400">Last synced: {{ conn.last_synced_at.strftime('%Y-%m-%d
-                            %H:%M:%S') }}</p>
+                        <p class="text-[10px] text-slate-400">Last synced: {{ conn.last_synced_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
                         {% endif %}
                     </div>
 

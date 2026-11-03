@@ -44,7 +44,7 @@ class RemotiveConnector(BaseConnector):
                         "title": item.get("title", "Untitled Role"),
                         "company": item.get("company_name", "Unknown Company"),
                         "location": item.get("candidate_required_location") or "Worldwide / Remote",
-                        "job_type": item.get("job_type", "Full-time").replace("_", " ").title(),
+                        "job_type": (item.get("job_type") or "Full-time").replace("_", " ").title(),
                         "salary_range": item.get("salary") or "Not disclosed",
                         "url": item.get("url", ""),
                         "description": item.get("description", ""),

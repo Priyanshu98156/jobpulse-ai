@@ -1,15 +1,24 @@
 import json
 import logging
 import re
+import hashlib
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.services.key_pool_service import key_pool_service
+from app.domain.eligibility import ScoringVerdict
 
 logger = logging.getLogger(__name__)
 
+SCORING_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "scoring_v1.txt"
+
 class AIService:
+    def __init__(self):
+        # In-memory LRU/hash cache to avoid burning LLM calls on identical postings
+        self._score_cache: Dict[str, Dict[str, Any]] = {}
+
     def _call_llm_with_pool(self, prompt: str, db: Optional[Session] = None) -> Optional[str]:
         """
         Executes prompt via KeyPoolService with round-robin load balancing,
@@ -37,53 +46,64 @@ class AIService:
     ) -> Dict[str, Any]:
         """
         Calculates match score (0-100), matching skills, missing keywords, and match reasoning.
+        Uses SHA-256 caching and versioned prompt template.
         """
-        prompt = f"""
-You are an expert technical recruiter and career coach.
+        # 1. Check SHA-256 content hash cache
+        content_hash = hashlib.sha256(
+            f"{job_title}|{job_description[:1000]}|{skills_str}|{resume_text[:1000]}".encode("utf-8")
+        ).hexdigest()
+
+        if content_hash in self._score_cache:
+            logger.info(f"Score cache HIT for job '{job_title}' (hash: {content_hash[:8]})")
+            return self._score_cache[content_hash]
+
+        # 2. Format versioned prompt
+        if SCORING_PROMPT_PATH.exists():
+            template = SCORING_PROMPT_PATH.read_text(encoding="utf-8")
+            prompt = template.format(
+                candidate_name="Applicant",
+                target_titles="Software Engineer / Data Scientist",
+                skills=skills_str,
+                years_of_experience=3.5,
+                summary=profile_summary,
+                resume_highlights=resume_text[:2500],
+                job_title=job_title,
+                company="Company",
+                location="Remote",
+                job_description=job_description[:3000]
+            )
+        else:
+            prompt = f"""
 Analyze the fit between this Candidate Profile / Resume and the Job Description.
-
-CANDIDATE DETAILS:
-Target Skills: {skills_str}
-Candidate Summary: {profile_summary}
-Candidate Resume excerpt:
-{resume_text[:2500]}
-
-JOB TO EVALUATE:
-Job Title: {job_title}
-Job Description:
-{job_description[:3000]}
-
-Return ONLY a valid JSON object matching this exact schema:
-{{
-  "match_score": <integer from 0 to 100>,
-  "match_reason": "<1-2 concise sentences explaining why the candidate is or isn't a strong match>",
-  "matching_skills": ["<skill1>", "<skill2>", ...],
-  "missing_keywords": ["<keyword1>", "<keyword2>", ...]
-}}
-Do not include markdown codeblocks or extra text.
+CANDIDATE: {profile_summary} {skills_str}
+JOB: {job_title} - {job_description[:3000]}
+Return ONLY JSON: {{"match_score": 85, "match_reason": "...", "matching_skills": [], "missing_keywords": []}}
 """
         response_text = self._call_llm_with_pool(prompt, db=db)
         if response_text:
             try:
                 clean_text = response_text.strip()
-                if clean_text.startswith("```json"):
-                    clean_text = clean_text[7:]
-                if clean_text.startswith("```"):
-                    clean_text = clean_text[3:]
-                if clean_text.endswith("```"):
-                    clean_text = clean_text[:-3]
+                if "```json" in clean_text:
+                    clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+                elif "```" in clean_text:
+                    clean_text = clean_text.split("```")[1].split("```")[0].strip()
                 parsed = json.loads(clean_text.strip())
-                return {
+
+                verdict = {
                     "match_score": max(0, min(100, int(parsed.get("match_score", 50)))),
                     "match_reason": parsed.get("match_reason", "AI match evaluation completed."),
                     "matching_skills": parsed.get("matching_skills", []),
                     "missing_keywords": parsed.get("missing_keywords", [])
                 }
+                self._score_cache[content_hash] = verdict
+                return verdict
             except Exception as e:
                 logger.warning(f"Error parsing AI response: {e}. Falling back to heuristic.")
 
         # Heuristic matching fallback
-        return self._heuristic_match(job_title, job_description, profile_summary, skills_str, resume_text)
+        heuristic_res = self._heuristic_match(job_title, job_description, profile_summary, skills_str, resume_text)
+        self._score_cache[content_hash] = heuristic_res
+        return heuristic_res
 
     def _heuristic_match(self, job_title: str, job_description: str, profile_summary: str, skills_str: str, resume_text: str) -> Dict[str, Any]:
         full_cand_text = f"{profile_summary} {skills_str} {resume_text}".lower()

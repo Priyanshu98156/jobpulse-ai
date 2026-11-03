@@ -7,9 +7,9 @@ from app.connectors.base import BaseConnector
 
 logger = logging.getLogger(__name__)
 
-# Default prominent companies using Lever
+# Default prominent companies with verified active Lever boards
 DEFAULT_LEVER_COMPANIES = [
-    "spotify", "atlassian", "canva", "datadog", "figma", "notion"
+    "spotify", "palantir", "kinsta"
 ]
 
 class LeverConnector(BaseConnector):

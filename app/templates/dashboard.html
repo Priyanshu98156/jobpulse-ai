@@ -69,6 +69,9 @@
                 <a href="/dashboard?status=skipped{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'skipped' %}bg-slate-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
                     Skipped ({{ stats.skipped }})
                 </a>
+                <a href="/dashboard?status=needs_look{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'needs_look' %}bg-amber-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Needs a Look ({{ stats.needs_look or 0 }})
+                </a>
             </div>
 
             <div class="flex items-center gap-2 w-full md:w-auto">
@@ -421,7 +424,7 @@
                 closeReviewModal();
                 setTimeout(() => window.location.reload(), 1500);
             } else {
-                showToast(data.message || 'Application submission failed.', 'error');
+                showToast(data.message || data.detail || 'Application submission failed.', 'error');
             }
         } catch (e) {
             showToast('Error sending application.', 'error');

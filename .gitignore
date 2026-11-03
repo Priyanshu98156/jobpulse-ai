@@ -4,9 +4,15 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.db
+*.db-shm
+*.db-wal
 data/*.db
+data/*.db-shm
+data/*.db-wal
+data/browser_profile/
 data/resumes/*
 !data/resumes/.gitkeep
 .env
 .DS_Store
-
+.pytest_cache/
