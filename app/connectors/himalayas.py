@@ -76,3 +76,4 @@ class HimalayasConnector(BaseConnector):
             logger.error(f"Error fetching from Himalayas API: {e}")
 
         return results
+

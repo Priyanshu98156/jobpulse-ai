@@ -31,3 +31,4 @@ async def test_himalayas_connector_fetch(respx_mock):
     assert job["company"] == "TechCorp Global"
     assert job["location"] == "Worldwide"
     assert "120000" in job["salary_range"]
+
