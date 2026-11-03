@@ -10,12 +10,21 @@ logger = logging.getLogger(__name__)
 KEYRING_SERVICE_VAULT = "jobpulse_ai"
 MASTER_KEY_NAME = "master_fernet_key"
 
+_in_memory_vault: dict[tuple[str, str], str] = {}
+
 def get_or_create_master_key() -> bytes:
     """
     Retrieves the master encryption key from the OS Keyring (Windows Credential Manager).
     If absent, generates a new cryptographic key and persists it securely in the OS Keyring.
+    Provides memory fallback for headless Linux CI runners.
     """
-    stored_key = keyring.get_password(KEYRING_SERVICE_VAULT, MASTER_KEY_NAME)
+    stored_key = None
+    try:
+        stored_key = keyring.get_password(KEYRING_SERVICE_VAULT, MASTER_KEY_NAME)
+    except Exception as e:
+        logger.warning(f"OS Keyring unavailable in current environment: {e}. Using memory vault.")
+        stored_key = _in_memory_vault.get((KEYRING_SERVICE_VAULT, MASTER_KEY_NAME))
+
     if not stored_key:
         new_key = Fernet.generate_key().decode("utf-8")
         try:
@@ -23,8 +32,9 @@ def get_or_create_master_key() -> bytes:
             logger.info("Generated new master Fernet key and saved to OS Keyring.")
             return new_key.encode("utf-8")
         except Exception as e:
-            logger.warning(f"Could not persist master key to OS Keyring: {e}. Falling back to deterministic memory key.")
-            return b"V0FSRF9GUkVFX0ZFUk5FVF9LRVlfREVUUk9JVF9TQUZFR1VBUkQ="
+            logger.warning(f"Could not persist master key to OS Keyring: {e}. Falling back to memory vault.")
+            _in_memory_vault[(KEYRING_SERVICE_VAULT, MASTER_KEY_NAME)] = new_key
+            return new_key.encode("utf-8")
     return stored_key.encode("utf-8")
 
 _fernet_instance: Optional[Fernet] = None
@@ -59,12 +69,22 @@ def decrypt_pii(ciphertext: Optional[str]) -> Optional[str]:
         return ciphertext
 
 def set_keyring_secret(service: str, key_id: str, secret: str):
-    """Stores an API key or password strictly in OS Keyring."""
-    keyring.set_password(service, key_id, secret)
+    """Stores an API key or password strictly in OS Keyring with memory fallback for CI."""
+    try:
+        keyring.set_password(service, key_id, secret)
+    except Exception as e:
+        logger.warning(f"OS Keyring set_password unavailable: {e}. Falling back to memory vault.")
+        _in_memory_vault[(service, key_id)] = secret
 
 def get_keyring_secret(service: str, key_id: str) -> Optional[str]:
-    """Retrieves an API key or password strictly from OS Keyring."""
-    return keyring.get_password(service, key_id)
+    """Retrieves an API key or password strictly from OS Keyring with memory fallback for CI."""
+    try:
+        val = keyring.get_password(service, key_id)
+        if val is not None:
+            return val
+    except Exception as e:
+        logger.warning(f"OS Keyring get_password unavailable: {e}. Falling back to memory vault.")
+    return _in_memory_vault.get((service, key_id))
 
 def delete_keyring_secret(service: str, key_id: str):
     """Removes a secret from OS Keyring."""
@@ -72,6 +92,7 @@ def delete_keyring_secret(service: str, key_id: str):
         keyring.delete_password(service, key_id)
     except Exception:
         pass
+    _in_memory_vault.pop((service, key_id), None)
 
 def mask_secret(secret: Optional[str]) -> str:
     """Masks secret to prevent leakage in UI or logs."""

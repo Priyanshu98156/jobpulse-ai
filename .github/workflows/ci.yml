@@ -21,9 +21,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest structlog cryptography keyring
+          pip install pytest respx keyrings.alt
+          playwright install chromium --with-deps
 
       - name: Run Test Suite
         run: |
           pytest -v
-
