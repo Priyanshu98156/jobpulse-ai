@@ -25,5 +25,8 @@ jobs:
           playwright install chromium --with-deps
 
       - name: Run Test Suite
+        env:
+          KEYRING_BACKEND: keyrings.alt.file.PlaintextKeyring
         run: |
+          alembic upgrade head
           pytest -v

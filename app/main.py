@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 
 def seed_initial_data():
     """Initializes default profile and connector rows if they don't exist."""
+    # Ensure tables exist (especially in clean/CI test environments before migrations run)
+    Base.metadata.create_all(bind=engine)
+
     from app.database import SessionLocal
     db = SessionLocal()
     try:
