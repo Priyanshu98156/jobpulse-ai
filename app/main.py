@@ -19,6 +19,7 @@ from app.connectors.manager import connector_manager
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.resume_service import resume_service
 from app.services.ai_service import ai_service
+from app.services.eligibility_service import eligibility_service
 from app.services.key_pool_service import key_pool_service, PROVIDER_PRESETS
 from app.core.logging import setup_logging
 from app.core.middleware import SecurityHeadersAndCSRFMiddleware
@@ -107,6 +108,7 @@ async def dashboard_page(
     # Calculate stats
     total_count = db.query(Job).count()
     review_pending_count = db.query(Job).filter(Job.status == "review_pending").count()
+    applying_count = db.query(Job).filter(Job.status == "applying").count()
     applied_count = db.query(Job).filter(Job.status == "applied").count()
     interviewing_count = db.query(Job).filter(Job.status == "interviewing").count()
     skipped_count = db.query(Job).filter(Job.status == "skipped").count()
@@ -115,6 +117,7 @@ async def dashboard_page(
     stats = {
         "total": total_count,
         "review_pending": review_pending_count,
+        "applying": applying_count,
         "applied": applied_count,
         "interviewing": interviewing_count,
         "skipped": skipped_count,
@@ -521,7 +524,8 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
 
     # Case 3: LinkedIn, Naukri, or External Board -> Assist-Only Mode
     # Zero DOM automation: Direct URL + 1-Click Clipboard Answers from Answer Bank
-    job.status = "applied"
+    # Move to 'applying' (in-progress) rather than prematurely claiming 'applied'
+    job.status = "applying"
     if pkg:
         pkg.submission_method = "clipboard_assist"
         pkg.submission_status = "external_opened"
@@ -531,7 +535,7 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
     return {
         "status": "ok",
         "submission_method": "clipboard_assist",
-        "message": "Assist-only mode: Pre-matched answers ready for 1-click clipboard copy. Opening direct portal...",
+        "message": "Cover letter copied to clipboard! Opening job portal in a new tab. Once submitted, click 'Mark as Applied'.",
         "answers": answers,
         "external_url": job.url
     }
@@ -539,7 +543,7 @@ async def apply_to_job(job_id: int, req: ApplyRequest, db: Session = Depends(get
 class StatusRequest(BaseModel):
     status: str
 
-ALLOWED_STATUSES = {"discovered", "review_pending", "applied", "interviewing", "skipped", "rejected"}
+ALLOWED_STATUSES = {"discovered", "review_pending", "applying", "applied", "interviewing", "skipped", "rejected"}
 
 @app.post("/api/job/{job_id}/status")
 async def update_status(job_id: int, req: StatusRequest, db: Session = Depends(get_db)):

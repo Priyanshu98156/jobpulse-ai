@@ -59,8 +59,22 @@ def test_linkedin_assist_only_mode():
         assert response.status_code == 200
         data = response.json()
         assert data["submission_method"] == "clipboard_assist"
-        assert "Assist-only mode" in data["message"]
+        assert "copied to clipboard" in data["message"].lower() or "portal" in data["message"].lower()
         assert "answers" in data
+
+        # Verify honest status tracking: job transitions to 'applying', not prematurely 'applied'
+        db.refresh(job)
+        assert job.status == "applying"
+
+        # Explicit candidate confirmation moves it to 'applied'
+        res_confirm = client.post(
+            f"/api/job/{job.id}/status",
+            json={"status": "applied"},
+            headers={"Host": "127.0.0.1:8000"}
+        )
+        assert res_confirm.status_code == 200
+        db.refresh(job)
+        assert job.status == "applied"
 
         db.delete(job)
         db.commit()

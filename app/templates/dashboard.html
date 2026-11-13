@@ -6,45 +6,45 @@
 <div class="space-y-6">
     <!-- Top Summary Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="/dashboard" class="bg-white hover:bg-slate-50/80 rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between transition-all group cursor-pointer">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Discovered</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Discovered</p>
                 <h3 class="text-2xl font-bold text-slate-900 mt-1">{{ stats.total }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-compass"></i>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-2xl p-5 border border-indigo-200 shadow-sm flex items-center justify-between bg-gradient-to-br from-white to-indigo-50/40">
+        <a href="/dashboard?status=review_pending" class="bg-white hover:bg-indigo-50/50 rounded-2xl p-5 border border-indigo-200 shadow-sm flex items-center justify-between bg-gradient-to-br from-white to-indigo-50/40 transition-all group cursor-pointer">
             <div>
                 <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Review Pending</p>
                 <h3 class="text-2xl font-bold text-indigo-900 mt-1">{{ stats.review_pending }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-md shadow-indigo-200">
+            <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-wand-magic-sparkles"></i>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="/dashboard?status=applied" class="bg-white hover:bg-emerald-50/40 rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between transition-all group cursor-pointer">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Applied</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Applied</p>
                 <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ stats.applied }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-paper-plane"></i>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="/dashboard?status=interviewing" class="bg-white hover:bg-purple-50/40 rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between transition-all group cursor-pointer">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Interviewing / Offers</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-purple-600 transition-colors">Interviewing / Offers</p>
                 <h3 class="text-2xl font-bold text-purple-600 mt-1">{{ stats.interviewing }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg font-bold">
+            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-champagne-glasses"></i>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Filters & Search Toolbar -->
@@ -56,6 +56,9 @@
                 </a>
                 <a href="/dashboard?status=review_pending{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'review_pending' %}bg-indigo-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
                     Pending Review ({{ stats.review_pending }})
+                </a>
+                <a href="/dashboard?status=applying{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'applying' %}bg-amber-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    In Progress ({{ stats.applying or 0 }})
                 </a>
                 <a href="/dashboard?status=applied{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'applied' %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
                     Applied ({{ stats.applied }})
@@ -202,6 +205,13 @@
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
                         <span>1-Click Review & Apply</span>
                     </button>
+
+                    {% if job.status == 'applying' %}
+                    <button onclick="updateJobStatus({{ job.id }}, 'applied')" class="w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 animate-pulse" title="Click after submitting on company site">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Mark as Applied</span>
+                    </button>
+                    {% endif %}
 
                     <div class="flex items-center gap-2 w-full">
                         <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="flex-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium text-center transition-colors">
@@ -399,12 +409,18 @@
                 alertTitle.innerText = 'Direct ATS API Submission';
                 alertDesc.innerText = `This job will be sent directly to ${job.company}'s ATS API endpoint with your resume and tailored cover letter.`;
                 submitBtnText.innerText = 'Submit via Direct ATS API';
+            } else if (job.platform.toLowerCase().includes('workday') || job.url.toLowerCase().includes('workday')) {
+                alertBox.className = 'p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/60 text-indigo-900 flex items-start gap-3';
+                alertIcon.className = 'fa-solid fa-robot text-indigo-600 text-base mt-0.5';
+                alertTitle.innerText = 'Assisted Headed Browser Autofill';
+                alertDesc.innerText = 'Launches dedicated browser to autofill Workday wizard steps, with structural stop before submit for your final check.';
+                submitBtnText.innerText = 'Launch Headed Autofill';
             } else {
                 alertBox.className = 'p-3.5 rounded-xl border border-blue-200 bg-blue-50/60 text-blue-900 flex items-start gap-3';
                 alertIcon.className = 'fa-solid fa-arrow-up-right-from-square text-blue-600 text-base mt-0.5';
-                alertTitle.innerText = 'Assisted Apply & External Link';
-                alertDesc.innerText = 'Your cover letter will be saved & copied to clipboard, and the job portal will open in a new tab for instant pasting.';
-                submitBtnText.innerText = 'Confirm & Open Portal';
+                alertTitle.innerText = 'Assisted Apply & 1-Click Clipboard';
+                alertDesc.innerText = 'Your cover letter will be copied to your clipboard and the portal will open in a new tab. After submitting, click "Mark as Applied" on the dashboard.';
+                submitBtnText.innerText = 'Copy Letter & Open Portal';
             }
 
         } catch (e) {
