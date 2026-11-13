@@ -150,8 +150,24 @@ Return ONLY JSON: {{"match_score": 85, "match_reason": "...", "matching_skills":
         profile_summary: str,
         skills_str: str,
         resume_text: str,
+        canary_keywords: Optional[List[str]] = None,
         db: Optional[Session] = None
     ) -> str:
+        # Auto-detect canary keywords from job_description if not explicitly provided
+        if canary_keywords is None:
+            from app.services.eligibility_service import eligibility_service
+            canaries, _ = eligibility_service.detect_canary_and_traps(job_description or "")
+            canary_keywords = canaries
+
+        canary_instruction = ""
+        if canary_keywords:
+            words_joined = ", ".join(f"'{w}'" for w in canary_keywords)
+            canary_instruction = f"""
+SPECIAL SCREENING INSTRUCTION:
+The employer's job description specifically asks applicants to include the keyword(s): {words_joined}.
+You MUST naturally and seamlessly incorporate {words_joined} into the body or closing of the cover letter so this application passes the employer's canary verification check!
+"""
+
         prompt = f"""
 Write a professional, compelling, and concise cover letter (3-4 focused paragraphs, under 300 words) for the following job application.
 
@@ -167,7 +183,7 @@ Company: {company}
 Title: {job_title}
 Job Description:
 {job_description[:2500]}
-
+{canary_instruction}
 TONE & STYLE:
 - Enthusiastic, direct, authentic, confident.
 - Highlight specific candidate skills directly applicable to the job description requirements.
@@ -181,13 +197,14 @@ TONE & STYLE:
         # Fallback template
         name = candidate_name or "Applicant"
         skills = skills_str or "Python, Data Engineering, and modern software development"
+        canary_ps = f"\n\nP.S. As requested in your description: {', '.join(canary_keywords)}." if canary_keywords else ""
         return f"""Dear Hiring Team at {company},
 
 I am writing to express my strong enthusiasm for the {job_title} position at {company}. With a proven background in {skills}, I am excited by the opportunity to contribute to your team's ongoing success and engineering goals.
 
 Throughout my experience, I have focused on delivering scalable, high-performance solutions and solving complex analytical challenges. The requirements outlined in your job posting closely align with my hands-on background and technical toolkit.
 
-Thank you for your time and consideration. I welcome the opportunity to discuss how my skill set and dedication can add immediate value to {company}.
+Thank you for your time and consideration. I welcome the opportunity to discuss how my skill set and dedication can add immediate value to {company}.{canary_ps}
 
 Sincerely,
 {name}"""

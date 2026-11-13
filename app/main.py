@@ -362,6 +362,10 @@ async def get_job_review_package(job_id: int, db: Session = Depends(get_db)):
 
     # If package doesn't exist yet, create one
     if not pkg:
+        # Run canary / honeypot trap detection and YoE requirement analysis
+        canaries, has_trap = eligibility_service.detect_canary_and_traps(job.description or "")
+        req_yoe, yoe_class = eligibility_service.extract_yoe_requirement(job.description or "")
+
         cover_letter = ai_service.generate_cover_letter(
             job_title=job.title,
             company=job.company,
@@ -377,13 +381,22 @@ async def get_job_review_package(job_id: int, db: Session = Depends(get_db)):
         pkg = ApplicationPackage(
             job_id=job.id,
             tailored_cover_letter=cover_letter,
-            screening_answers={},
+            screening_answers={
+                "canary_keywords": canaries,
+                "has_llm_trap": has_trap,
+                "yoe_requirement": req_yoe,
+                "yoe_classification": yoe_class
+            },
             resume_path=profile.master_resume_filename if profile else "",
             submission_method="api" if has_submit_api else "direct_link",
             submission_status="draft"
         )
         db.add(pkg)
         db.commit()
+
+    # Re-extract or read canary & YoE for response
+    canaries, has_trap = eligibility_service.detect_canary_and_traps(job.description or "")
+    req_yoe, yoe_class = eligibility_service.extract_yoe_requirement(job.description or "")
 
     return {
         "status": "ok",
@@ -394,7 +407,14 @@ async def get_job_review_package(job_id: int, db: Session = Depends(get_db)):
             "location": job.location,
             "platform": job.platform,
             "url": job.url,
-            "match_score": job.match_score
+            "match_score": job.match_score,
+            "canary_keywords": canaries,
+            "has_llm_trap": has_trap,
+            "trap_warning": "LLM honeypot detector instruction stripped" if has_trap else None,
+            "yoe_info": {
+                "required_years": req_yoe,
+                "classification": yoe_class
+            }
         },
         "profile": {
             "full_name": profile.full_name if profile else "",
@@ -538,6 +558,9 @@ async def regenerate_cover_letter(job_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Job not found")
 
     profile = db.query(CandidateProfile).first()
+    from app.services.eligibility_service import eligibility_service
+    canaries, _ = eligibility_service.detect_canary_and_traps(job.description or "")
+
     cover_letter = ai_service.generate_cover_letter(
         job_title=job.title,
         company=job.company,
@@ -545,7 +568,9 @@ async def regenerate_cover_letter(job_id: int, db: Session = Depends(get_db)):
         candidate_name=profile.full_name if profile else "Applicant",
         profile_summary=profile.summary if profile else "",
         skills_str=profile.skills if profile else "",
-        resume_text=profile.master_resume_text if profile else ""
+        resume_text=profile.master_resume_text if profile else "",
+        canary_keywords=canaries,
+        db=db
     )
 
     pkg = db.query(ApplicationPackage).filter(ApplicationPackage.job_id == job_id).first()

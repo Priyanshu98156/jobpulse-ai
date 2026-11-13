@@ -112,6 +112,18 @@
                         <i class="fa-solid fa-satellite-dish mr-1"></i>{{ job.platform }}
                     </span>
 
+                    {% if job.eligibility_status == 'unclear' %}
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Needs a Look
+                    </span>
+                    {% endif %}
+
+                    {% if '3+ year' in (job.description or '').lower() or '3 years' in (job.description or '').lower() %}
+                    <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                        <i class="fa-solid fa-chart-line mr-1"></i>Stretch Match (3 yrs wishlist)
+                    </span>
+                    {% endif %}
+
                     {% if job.platform in ['greenhouse', 'lever'] %}
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                         <i class="fa-solid fa-bolt mr-1"></i>Direct ATS API Apply
@@ -260,6 +272,16 @@
                 </div>
             </div>
 
+            <!-- Employer Canary & Trap Alert Box (Dynamic) -->
+            <div id="canaryAlertBox" class="hidden p-3.5 rounded-xl border border-amber-300 bg-amber-50/80 text-amber-900 space-y-1.5">
+                <div class="flex items-center gap-2 font-bold text-xs">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                    <span>Employer Keyword &amp; Honeypot Verification</span>
+                </div>
+                <p id="canaryKeywordsText" class="text-[11px] text-amber-800"></p>
+                <div id="honeypotWarningText" class="hidden text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 p-2 rounded-lg"></div>
+            </div>
+
             <!-- Tailored Cover Letter -->
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
@@ -336,6 +358,32 @@
             document.getElementById('modalCandidatePhone').innerText = profile.phone || 'Not set';
             document.getElementById('modalResumeName').innerText = profile.master_resume_filename ? '✓ Attached (' + profile.master_resume_filename + ')' : '⚠ No PDF uploaded';
             document.getElementById('modalWorkAuth').innerText = profile.work_authorization || 'Not set';
+
+            // Canary and Honeypot Alerts
+            const canaryBox = document.getElementById('canaryAlertBox');
+            const canaryKeywordsText = document.getElementById('canaryKeywordsText');
+            const honeypotWarning = document.getElementById('honeypotWarningText');
+
+            let hasCanary = job.canary_keywords && job.canary_keywords.length > 0;
+            let hasTrap = job.has_llm_trap;
+
+            if (hasCanary || hasTrap) {
+                canaryBox.classList.remove('hidden');
+                if (hasCanary) {
+                    canaryKeywordsText.innerHTML = `<strong>Required Employer Keyword:</strong> Found canary prompt: <span class="bg-amber-200 px-1.5 py-0.5 rounded font-mono font-bold text-amber-900">"${job.canary_keywords.join(', ')}"</span>. It has been woven organically into your cover letter draft below.`;
+                } else {
+                    canaryKeywordsText.innerHTML = '';
+                }
+
+                if (hasTrap) {
+                    honeypotWarning.classList.remove('hidden');
+                    honeypotWarning.innerHTML = `🛡️ <strong>Bot Honeypot Detected:</strong> Employer inserted a trap instruction (${job.trap_warning || 'LLM detector phrase'}). This system has stripped it so your application is not flagged as an automated bot.`;
+                } else {
+                    honeypotWarning.classList.add('hidden');
+                }
+            } else {
+                canaryBox.classList.add('hidden');
+            }
 
             document.getElementById('modalCoverLetter').value = pkg.tailored_cover_letter || '';
 

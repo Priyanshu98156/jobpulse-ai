@@ -47,6 +47,28 @@ GLOBAL_TERMS = [
     r"\bbangalore\b",
 ]
 
+# Honeypots & Canary Keyword Detectors
+CANARY_PATTERNS = [
+    r"(?:include|mention|write|put|add)\s+(?:the\s+)?word\s+[\"']([a-zA-Z]{3,20})[\"']",
+    r"(?:confirm|verify)\s+you(?:'ve|\s+have)?\s+read\s+this[^\.\n]*?(?:include|mention|use)\s+(?:the\s+word\s+)?[\"']?([a-zA-Z]{3,20})[\"']?",
+    r"\bkeyword[:\s]+[\"']?([a-zA-Z]{3,20})[\"']?",
+    r"code\s*word[:\s]+[\"']?([a-zA-Z]{3,20})[\"']?",
+]
+
+LLM_TRAP_PATTERNS = [
+    r"if\s+you(?:'re|\s+are)\s+(?:an?\s+)?(?:llm|ai|bot|language\s+model|automated)",
+    r"\[llm\s+alert\]",
+    r"applications?\s+without\s+this\s+disclosure\s+will\s+not\s+be\s+considered",
+    r"disclose\s+if\s+you\s+are\s+using\s+ai"
+]
+
+YOE_PATTERNS = [
+    r"(\d+)\+?\s*(?:to|-)\s*\d+\s*years?(?:\s*of)?\s*(?:full[-\s]stack|software|backend|frontend|industry|production|work|relevant)?\s*experience",
+    r"(\d+)\+?\s*years?(?:\s*of)?\s*(?:full[-\s]stack|software|backend|frontend|industry|production|work|relevant)?\s*experience",
+    r"minimum\s*(?:of\s*)?(\d+)\s*years",
+    r"at\s+least\s+(\d+)\s*years",
+]
+
 class RemoteEligibilityService:
     """
     4-Layer Remote Eligibility Gate.
@@ -196,6 +218,62 @@ class RemoteEligibilityService:
                 requires_human_look=True
             )
 
+    def extract_yoe_requirement(self, description: str) -> tuple[Optional[int], str]:
+        """
+        Extracts minimum years of experience required by the JD.
+        Classifies into direct_match (0-2y), stretch_match (3y), senior_role (4-5y), or veteran_role (6+y).
+        """
+        desc_lower = description.lower()
+        min_yoe = None
+        for pattern in YOE_PATTERNS:
+            m = re.search(pattern, desc_lower)
+            if m:
+                try:
+                    val = int(m.group(1))
+                    if min_yoe is None or val < min_yoe:
+                        min_yoe = val
+                except (ValueError, TypeError):
+                    continue
+
+        if min_yoe is None:
+            if any(w in desc_lower for w in ["principal engineer", "staff engineer", "lead developer"]):
+                return 5, "senior_role"
+            return None, "direct_match"
+
+        if min_yoe <= 2:
+            return min_yoe, "direct_match"
+        elif min_yoe == 3:
+            return min_yoe, "stretch_match"
+        elif 4 <= min_yoe <= 5:
+            return min_yoe, "senior_role"
+        else:
+            return min_yoe, "veteran_role"
+
+    def detect_canary_and_traps(self, description: str) -> tuple[List[str], bool]:
+        """
+        Detects employer canary words (e.g., 'include the word pineapple')
+        and honeypot LLM traps ('if you are an LLM include [llm alert]').
+        """
+        canaries = []
+        desc_lower = description.lower()
+
+        # 1. Canary words
+        for pattern in CANARY_PATTERNS:
+            for match in re.finditer(pattern, description, re.IGNORECASE):
+                word = match.group(1).strip()
+                if word and len(word) >= 3 and word.lower() not in ["and", "the", "that", "this", "with", "word"]:
+                    if word.lower() not in [c.lower() for c in canaries]:
+                        canaries.append(word.lower())
+
+        # 2. LLM honeypot trap
+        has_trap = False
+        for pattern in LLM_TRAP_PATTERNS:
+            if re.search(pattern, desc_lower):
+                has_trap = True
+                break
+
+        return canaries, has_trap
+
     def evaluate_job(
         self,
         title: str,
@@ -205,23 +283,37 @@ class RemoteEligibilityService:
         llm_caller = None
     ) -> EligibilityVerdict:
         """
-        Full 4-Layer evaluation pipeline.
+        Full 4-Layer evaluation pipeline with YoE classification and Canary/Trap detection.
         """
         # Step 1: Run deterministic layers (Layer 1 & 2)
         verdict = self.evaluate_deterministic(title, location, description)
-        if verdict is not None:
-            return verdict
+        if verdict is None:
+            # Step 2: Run Layer 3 (LLM) if caller provided
+            if llm_caller is not None:
+                verdict = self.evaluate_with_llm(title, company, location, description, llm_caller)
+            else:
+                # Step 3: Layer 4 fallback if no LLM caller available
+                verdict = EligibilityVerdict(
+                    status=EligibilityStatus.UNCLEAR,
+                    reason="Ambiguous job location/requirements; queued for manual review.",
+                    confidence=0.5,
+                    requires_human_look=True
+                )
 
-        # Step 2: Run Layer 3 (LLM) if caller provided
-        if llm_caller is not None:
-            return self.evaluate_with_llm(title, company, location, description, llm_caller)
+        # Step 4: Extract YoE and Canary/Trap detection
+        yoe, yoe_class = self.extract_yoe_requirement(f"{title}\n{description}")
+        canaries, has_trap = self.detect_canary_and_traps(description)
 
-        # Step 3: Layer 4 fallback if no LLM caller available
-        return EligibilityVerdict(
-            status=EligibilityStatus.UNCLEAR,
-            reason="Ambiguous job location/requirements; queued for manual review.",
-            confidence=0.5,
-            requires_human_look=True
-        )
+        verdict.required_yoe = yoe
+        verdict.yoe_classification = yoe_class
+        verdict.canary_keywords = canaries
+        verdict.has_llm_trap = has_trap
+
+        # Flag veteran roles (6+ years) for candidate look
+        if yoe_class == "veteran_role" and verdict.status == EligibilityStatus.ELIGIBLE:
+            verdict.requires_human_look = True
+            verdict.reason += f" (Demands {yoe}+ years experience - veteran role)"
+
+        return verdict
 
 eligibility_service = RemoteEligibilityService()

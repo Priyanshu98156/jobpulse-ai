@@ -168,7 +168,9 @@ class ConnectorManager:
                         candidate_name=profile.full_name if profile else "Applicant",
                         profile_summary=profile_summary,
                         skills_str=skills_str,
-                        resume_text=resume_text
+                        resume_text=resume_text,
+                        canary_keywords=el_verdict.canary_keywords,
+                        db=db
                     )
                     app_pkg = ApplicationPackage(
                         job_id=new_job.id,
