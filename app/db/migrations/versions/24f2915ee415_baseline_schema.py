@@ -20,73 +20,76 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing_tables = inspector.get_table_names()
 
     # Step 1: Migrate existing plaintext keys to OS Keyring if present
-    # Check if api_key column exists in ai_keys
-    inspector = sa.inspect(conn)
-    columns = [c['name'] for c in inspector.get_columns('ai_keys')]
-    
-    if 'api_key' in columns:
-        rows = conn.execute(sa.text("SELECT id, api_key FROM ai_keys")).fetchall()
-        for row in rows:
-            row_id, plaintext_key = row[0], row[1]
-            if plaintext_key:
-                k_id = f"ai_key_{row_id}"
-                set_keyring_secret(KEYRING_SERVICE_VAULT, k_id, plaintext_key)
-
-    # Step 2: Batch alter ai_keys for SQLite compatibility
-    with op.batch_alter_table('ai_keys', recreate='auto') as batch_op:
-        if 'keyring_id' not in columns:
-            batch_op.add_column(sa.Column('keyring_id', sa.String(length=150), nullable=True))
-        if 'api_key_masked' not in columns:
-            batch_op.add_column(sa.Column('api_key_masked', sa.String(length=50), nullable=True))
-
-    # Populate keyring_id and api_key_masked for migrated rows
-    if 'api_key' in columns:
-        rows = conn.execute(sa.text("SELECT id, api_key FROM ai_keys")).fetchall()
-        for row in rows:
-            row_id, plaintext_key = row[0], row[1]
-            k_id = f"ai_key_{row_id}"
-            masked = mask_secret(plaintext_key) if plaintext_key else ""
-            conn.execute(
-                sa.text("UPDATE ai_keys SET keyring_id = :kid, api_key_masked = :masked WHERE id = :id"),
-                {"kid": k_id, "masked": masked, "id": row_id}
-            )
-
-    # Now drop api_key and enforce constraints
-    with op.batch_alter_table('ai_keys', recreate='auto') as batch_op:
+    if 'ai_keys' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('ai_keys')]
+        
         if 'api_key' in columns:
-            batch_op.drop_column('api_key')
-        batch_op.create_unique_constraint('uq_ai_keys_keyring_id', ['keyring_id'])
+            rows = conn.execute(sa.text("SELECT id, api_key FROM ai_keys")).fetchall()
+            for row in rows:
+                row_id, plaintext_key = row[0], row[1]
+                if plaintext_key:
+                    k_id = f"ai_key_{row_id}"
+                    set_keyring_secret(KEYRING_SERVICE_VAULT, k_id, plaintext_key)
 
-    # Step 3: Batch alter candidate_profiles
-    profile_cols = [c['name'] for c in inspector.get_columns('candidate_profiles')]
-    with op.batch_alter_table('candidate_profiles', recreate='auto') as batch_op:
-        batch_op.alter_column('email',
-                              existing_type=sa.VARCHAR(length=200),
-                              type_=app.core.security.EncryptedText(),
-                              existing_nullable=True)
-        batch_op.alter_column('phone',
-                              existing_type=sa.VARCHAR(length=50),
-                              type_=app.core.security.EncryptedText(),
-                              existing_nullable=True)
-        batch_op.alter_column('expected_salary',
-                              existing_type=sa.VARCHAR(length=100),
-                              type_=app.core.security.EncryptedText(),
-                              existing_nullable=True)
+        # Step 2: Batch alter ai_keys for SQLite compatibility
+        with op.batch_alter_table('ai_keys', recreate='auto') as batch_op:
+            if 'keyring_id' not in columns:
+                batch_op.add_column(sa.Column('keyring_id', sa.String(length=150), nullable=True))
+            if 'api_key_masked' not in columns:
+                batch_op.add_column(sa.Column('api_key_masked', sa.String(length=50), nullable=True))
 
-    # Step 4: Batch alter jobs
-    jobs_cols = [c['name'] for c in inspector.get_columns('jobs')]
-    with op.batch_alter_table('jobs', recreate='auto') as batch_op:
-        if 'remote_type' not in jobs_cols:
-            batch_op.add_column(sa.Column('remote_type', sa.String(length=50), nullable=True, server_default='unknown'))
-        if 'eligibility_status' not in jobs_cols:
-            batch_op.add_column(sa.Column('eligibility_status', sa.String(length=50), nullable=True, server_default='eligible'))
-            batch_op.create_index('ix_jobs_eligibility_status', ['eligibility_status'], unique=False)
-        if 'eligibility_evidence' not in jobs_cols:
-            batch_op.add_column(sa.Column('eligibility_evidence', sa.Text(), nullable=True))
-        if 'regions_allowed' not in jobs_cols:
-            batch_op.add_column(sa.Column('regions_allowed', sa.JSON(), nullable=True))
+        # Populate keyring_id and api_key_masked for migrated rows
+        if 'api_key' in columns:
+            rows = conn.execute(sa.text("SELECT id, api_key FROM ai_keys")).fetchall()
+            for row in rows:
+                row_id, plaintext_key = row[0], row[1]
+                k_id = f"ai_key_{row_id}"
+                masked = mask_secret(plaintext_key) if plaintext_key else ""
+                conn.execute(
+                    sa.text("UPDATE ai_keys SET keyring_id = :kid, api_key_masked = :masked WHERE id = :id"),
+                    {"kid": k_id, "masked": masked, "id": row_id}
+                )
+
+        # Now drop api_key and enforce constraints
+        with op.batch_alter_table('ai_keys', recreate='auto') as batch_op:
+            if 'api_key' in columns:
+                batch_op.drop_column('api_key')
+            batch_op.create_unique_constraint('uq_ai_keys_keyring_id', ['keyring_id'])
+
+    # Step 3: Batch alter candidate_profiles if present
+    if 'candidate_profiles' in existing_tables:
+        profile_cols = [c['name'] for c in inspector.get_columns('candidate_profiles')]
+        with op.batch_alter_table('candidate_profiles', recreate='auto') as batch_op:
+            batch_op.alter_column('email',
+                                  existing_type=sa.VARCHAR(length=200),
+                                  type_=app.core.security.EncryptedText(),
+                                  existing_nullable=True)
+            batch_op.alter_column('phone',
+                                  existing_type=sa.VARCHAR(length=50),
+                                  type_=app.core.security.EncryptedText(),
+                                  existing_nullable=True)
+            batch_op.alter_column('expected_salary',
+                                  existing_type=sa.VARCHAR(length=100),
+                                  type_=app.core.security.EncryptedText(),
+                                  existing_nullable=True)
+
+    # Step 4: Batch alter jobs if present
+    if 'jobs' in existing_tables:
+        jobs_cols = [c['name'] for c in inspector.get_columns('jobs')]
+        with op.batch_alter_table('jobs', recreate='auto') as batch_op:
+            if 'remote_type' not in jobs_cols:
+                batch_op.add_column(sa.Column('remote_type', sa.String(length=50), nullable=True, server_default='unknown'))
+            if 'eligibility_status' not in jobs_cols:
+                batch_op.add_column(sa.Column('eligibility_status', sa.String(length=50), nullable=True, server_default='eligible'))
+                batch_op.create_index('ix_jobs_eligibility_status', ['eligibility_status'], unique=False)
+            if 'eligibility_evidence' not in jobs_cols:
+                batch_op.add_column(sa.Column('eligibility_evidence', sa.Text(), nullable=True))
+            if 'regions_allowed' not in jobs_cols:
+                batch_op.add_column(sa.Column('regions_allowed', sa.JSON(), nullable=True))
 
 
 def downgrade() -> None:
