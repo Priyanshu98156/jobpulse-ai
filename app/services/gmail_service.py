@@ -22,14 +22,29 @@ class GmailReaderService:
         self.creds = None
 
     def get_client_config(self) -> Optional[dict]:
-        """Loads client_secret json from OS Keyring vault."""
+        """Loads client_secret json from OS Keyring vault, or local client_secret.json and vaults it."""
+        import json
+        from pathlib import Path
         raw = keyring.get_password(KEYRING_SERVICE, CLIENT_CONFIG_KEY)
         if raw:
             try:
-                import json
                 return json.loads(raw)
             except Exception:
                 pass
+        # Fallback to local file if available, and auto-vault
+        for fname in ["client_secret.json", "client_secrets.json"]:
+            p = Path(fname)
+            if p.exists():
+                try:
+                    content = p.read_text(encoding="utf-8")
+                    data = json.loads(content)
+                    try:
+                        keyring.set_password(KEYRING_SERVICE, CLIENT_CONFIG_KEY, content)
+                    except Exception:
+                        pass
+                    return data
+                except Exception:
+                    pass
         return None
 
     def get_credentials(self):

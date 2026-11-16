@@ -1,5 +1,7 @@
 """Models backward-compatibility module re-exporting from app.db.models."""
 from app.db.models import (
+    User,
+    UserJobApplication,
     CandidateProfile,
     Job,
     ApplicationPackage,
@@ -17,6 +19,8 @@ from app.db.models import (
 )
 
 __all__ = [
+    "User",
+    "UserJobApplication",
     "CandidateProfile",
     "Job",
     "ApplicationPackage",

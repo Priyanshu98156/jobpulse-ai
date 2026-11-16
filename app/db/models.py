@@ -8,10 +8,34 @@ def utc_now():
     """Timezone-aware UTC timestamp helper conforming to standards."""
     return datetime.now(timezone.utc)
 
+class User(Base):
+    """
+    Multi-tenant User account model.
+    Enables isolated workspaces for multiple job seekers.
+    """
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=True) # Nullable for pure OAuth users
+    full_name = Column(String(255), default="")
+    avatar_url = Column(String(500), default="")
+    auth_provider = Column(String(50), default="local") # local, google
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    # Relationships
+    candidate_profile = relationship("CandidateProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    answers = relationship("AnswerBank", back_populates="user", cascade="all, delete-orphan")
+    job_applications = relationship("UserJobApplication", back_populates="user", cascade="all, delete-orphan")
+
 class CandidateProfile(Base):
     __tablename__ = "candidate_profiles"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    user = relationship("User", back_populates="candidate_profile")
     full_name = Column(String(200), default="")
     # Sensitive PII encrypted at rest using Fernet with master key in OS Keyring
     email = Column(EncryptedText, default="")
@@ -268,7 +292,8 @@ class AnswerBank(Base):
     __tablename__ = "answer_bank"
 
     id = Column(Integer, primary_key=True, index=True)
-    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_identities.id", ondelete="CASCADE"), nullable=True, index=True)
     question_pattern = Column(String(300), nullable=False, index=True)
     answer_text = Column(Text, nullable=False)
     category = Column(String(100), default="general")
@@ -277,7 +302,27 @@ class AnswerBank(Base):
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
+    user = relationship("User", back_populates="answers")
     candidate = relationship("CandidateIdentity", back_populates="answers")
+
+class UserJobApplication(Base):
+    """
+    Tracks a specific user's status for a job (applied, interviewing, skipped).
+    Enables shared jobs across users while keeping application state isolated.
+    """
+    __tablename__ = "user_job_applications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_id = Column(Integer, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String(50), default="review_pending", index=True) # review_pending, applying, applied, interviewing, skipped
+    match_score = Column(Integer, nullable=True)
+    match_reason = Column(Text, default="")
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    user = relationship("User", back_populates="job_applications")
+    job = relationship("Job")
 
 
 
