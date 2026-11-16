@@ -16,3 +16,6 @@ data/resumes/*
 .env
 .DS_Store
 .pytest_cache/
+client_secret*.json
+*.token.json
+token.json

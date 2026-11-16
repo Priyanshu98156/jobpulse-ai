@@ -22,6 +22,26 @@ DISQUALIFYING_PATTERNS = [
     r"must\s+be\s+physically\s+located\s+in\s+the\s+(?:united\s+states|us)",
     r"us\s+work\s+authorization\s+required\s+without\s+sponsorship",
     r"strictly\s+us\s+based",
+    # Physical Office / Hybrid in foreign countries
+    r"hybrid\s+with\s+\d+\s+days?(?:\s*a\s*week)?\s+in\s+(?:the\s+)?office",
+    r"\d+\s+days?(?:\s*a\s*week)?\s+in\s+(?:our\s+|the\s+)?office",
+    r"(?:must|required\s+to)\s+come\s+into\s+the\s+office",
+    r"(?:on-?site|in-?person)\s+only",
+    r"no\s+visa\s+sponsorship(?:\s+available|\s+provided)?",
+    r"cannot\s+sponsor\s+visas?",
+    r"unable\s+to\s+sponsor\s+(?:work\s+)?visas?",
+    r"must\s+have\s+(?:the\s+)?right\s+to\s+work\s+in\s+(?:the\s+)?(?:uk|united\s+kingdom|eu|europe|germany|canada|australia)",
+    r"uk\s+work\s+(?:permit|authorization)\s+required",
+]
+
+# Visa Sponsorship / Relocation Positive Indicators (Overrides local hybrid/onsite)
+SPONSORSHIP_RELOCATION_TERMS = [
+    r"\bvisa\s+sponsorship\s+(?:is\s+)?(?:provided|available|offered)\b",
+    r"\bwill\s+sponsor\s+(?:work\s+)?visas?\b",
+    r"\bopen\s+to\s+sponsoring\b",
+    r"\brelocation\s+(?:support|package|assistance|allowance|bonus)\b",
+    r"\bwe\s+offer\s+relocation\b",
+    r"\bassist(?:ance)?\s+with\s+relocation\b",
 ]
 
 # Common negation prefixes within 35 characters
@@ -101,6 +121,16 @@ class RemoteEligibilityService:
         """
         combined_text = f"{title}\n{location}\n{description}".lower()
 
+        # Check explicit visa sponsorship or relocation assistance
+        has_sponsorship_relocation = False
+        matched_sponsor_quote = ""
+        for s_term in SPONSORSHIP_RELOCATION_TERMS:
+            m = re.search(s_term, combined_text, re.IGNORECASE)
+            if m:
+                has_sponsorship_relocation = True
+                matched_sponsor_quote = m.group()
+                break
+
         # Check positive indicators first (India, Worldwide, B2B Contractor)
         has_global_term = False
         matched_global_quote = ""
@@ -119,6 +149,16 @@ class RemoteEligibilityService:
                 disqualified_snippet = snippet
                 break
 
+        # If international sponsorship or relocation is explicitly provided, it qualifies an onsite/hybrid role
+        if has_sponsorship_relocation:
+            return EligibilityVerdict(
+                status=EligibilityStatus.ELIGIBLE,
+                reason=f"Role provides international visa sponsorship or relocation assistance: '{matched_sponsor_quote}'.",
+                confidence=0.92,
+                evidence_quote=matched_sponsor_quote,
+                requires_human_look=False
+            )
+
         # Conflict resolution between disqualifying and global terms
         if disqualified_snippet and has_global_term:
             # Conflicting signals -> Route to Layer 4 (Needs a Look)
@@ -131,7 +171,7 @@ class RemoteEligibilityService:
             )
 
         if disqualified_snippet:
-            # Definitive ineligibility
+            # Definitive ineligibility (e.g. physical hybrid 3 days a week in London without sponsorship)
             return EligibilityVerdict(
                 status=EligibilityStatus.INELIGIBLE,
                 reason=f"Disqualifying requirement found: '{disqualified_snippet}'.",
