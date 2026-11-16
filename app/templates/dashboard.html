@@ -1,178 +1,191 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - JobPulse AI{% endblock %}
+{% block title %}Dashboard &bull; JobPulse AI Stream{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Top Summary Stats -->
+
+    <!-- Top Summary Metrics Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <a href="/dashboard" class="bg-white hover:bg-slate-50/80 rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between transition-all group cursor-pointer">
+        
+        <!-- Discovered -->
+        <a href="/dashboard?status=all" class="bg-white hover:bg-[#FAF8F5] rounded-2xl p-5 border border-[#E6DFD5] shadow-xs flex items-center justify-between transition-all group cursor-pointer">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Discovered</p>
-                <h3 class="text-2xl font-bold text-slate-900 mt-1">{{ stats.total }}</h3>
+                <p class="text-[11px] font-bold text-[#2A2521]/60 uppercase tracking-wider group-hover:text-[#1A1715] transition-colors">Total Discovered</p>
+                <h3 class="text-2xl font-black text-[#1A1715] mt-1 font-mono">{{ stats.total }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
+            <div class="w-11 h-11 rounded-xl bg-[#FAF8F5] text-[#1A1715] border border-[#E6DFD5] flex items-center justify-center text-base font-bold group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-compass"></i>
             </div>
         </a>
 
-        <a href="/dashboard?status=review_pending" class="bg-white hover:bg-indigo-50/50 rounded-2xl p-5 border border-indigo-200 shadow-sm flex items-center justify-between bg-gradient-to-br from-white to-indigo-50/40 transition-all group cursor-pointer">
+        <!-- Review Pending -->
+        <a href="/dashboard?status=review_pending" class="bg-white hover:bg-[#FAF8F5] rounded-2xl p-5 border {% if current_status == 'review_pending' %}border-[#C25E38] ring-1 ring-[#C25E38]{% else %}border-[#E6DFD5]{% endif %} shadow-xs flex items-center justify-between transition-all group cursor-pointer">
             <div>
-                <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Review Pending</p>
-                <h3 class="text-2xl font-bold text-indigo-900 mt-1">{{ stats.review_pending }}</h3>
+                <p class="text-[11px] font-bold text-[#C25E38] uppercase tracking-wider">Review Pending</p>
+                <h3 class="text-2xl font-black text-[#C25E38] mt-1 font-mono">{{ stats.review_pending }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+            <div class="w-11 h-11 rounded-xl bg-[#C25E38] text-white flex items-center justify-center text-base font-bold shadow-sm group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-wand-magic-sparkles"></i>
             </div>
         </a>
 
-        <a href="/dashboard?status=applied" class="bg-white hover:bg-emerald-50/40 rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between transition-all group cursor-pointer">
+        <!-- Applied -->
+        <a href="/dashboard?status=applied" class="bg-white hover:bg-[#FAF8F5] rounded-2xl p-5 border border-[#E6DFD5] shadow-xs flex items-center justify-between transition-all group cursor-pointer">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Applied</p>
-                <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ stats.applied }}</h3>
+                <p class="text-[11px] font-bold text-[#2A2521]/60 uppercase tracking-wider group-hover:text-emerald-700 transition-colors">Submitted &amp; Applied</p>
+                <h3 class="text-2xl font-black text-emerald-700 mt-1 font-mono">{{ stats.applied }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center text-base font-bold group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-paper-plane"></i>
             </div>
         </a>
 
-        <a href="/dashboard?status=interviewing" class="bg-white hover:bg-purple-50/40 rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between transition-all group cursor-pointer">
+        <!-- Interviewing / Offers -->
+        <a href="/dashboard?status=interviewing" class="bg-white hover:bg-[#FAF8F5] rounded-2xl p-5 border border-[#E6DFD5] shadow-xs flex items-center justify-between transition-all group cursor-pointer">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-purple-600 transition-colors">Interviewing / Offers</p>
-                <h3 class="text-2xl font-bold text-purple-600 mt-1">{{ stats.interviewing }}</h3>
+                <p class="text-[11px] font-bold text-[#2A2521]/60 uppercase tracking-wider group-hover:text-purple-700 transition-colors">Interviews &amp; Offers</p>
+                <h3 class="text-2xl font-black text-purple-700 mt-1 font-mono">{{ stats.interviewing }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
+            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center text-base font-bold group-hover:scale-105 transition-transform">
                 <i class="fa-solid fa-champagne-glasses"></i>
             </div>
         </a>
     </div>
 
     <!-- Filters & Search Toolbar -->
-    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+    <div class="bg-white rounded-2xl p-4 border border-[#E6DFD5] shadow-xs space-y-3">
         <form method="GET" action="/dashboard" class="flex flex-col md:flex-row gap-3 items-center justify-between">
+            
+            <!-- Status Filter Pills -->
             <div class="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
-                <a href="/dashboard?status=all{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'all' or not current_status %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                <a href="/dashboard?status=all{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if current_status == 'all' or not current_status %}bg-[#1A1715] text-white shadow-xs{% else %}bg-[#FAF8F5] text-[#2A2521]/70 border border-[#E6DFD5] hover:text-[#1A1715]{% endif %}">
                     All ({{ stats.total }})
                 </a>
-                <a href="/dashboard?status=review_pending{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'review_pending' %}bg-indigo-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                    Pending Review ({{ stats.review_pending }})
+                <a href="/dashboard?status=review_pending{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if current_status == 'review_pending' %}bg-[#C25E38] text-white shadow-xs{% else %}bg-[#FAF8F5] text-[#2A2521]/70 border border-[#E6DFD5] hover:text-[#1A1715]{% endif %}">
+                    Review Pending ({{ stats.review_pending }})
                 </a>
-                <a href="/dashboard?status=applying{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'applying' %}bg-amber-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                <a href="/dashboard?status=applying{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if current_status == 'applying' %}bg-amber-600 text-white shadow-xs{% else %}bg-[#FAF8F5] text-[#2A2521]/70 border border-[#E6DFD5] hover:text-[#1A1715]{% endif %}">
                     In Progress ({{ stats.applying or 0 }})
                 </a>
-                <a href="/dashboard?status=applied{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'applied' %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                <a href="/dashboard?status=applied{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if current_status == 'applied' %}bg-emerald-700 text-white shadow-xs{% else %}bg-[#FAF8F5] text-[#2A2521]/70 border border-[#E6DFD5] hover:text-[#1A1715]{% endif %}">
                     Applied ({{ stats.applied }})
                 </a>
-                <a href="/dashboard?status=interviewing{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'interviewing' %}bg-purple-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                <a href="/dashboard?status=interviewing{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if current_status == 'interviewing' %}bg-purple-700 text-white shadow-xs{% else %}bg-[#FAF8F5] text-[#2A2521]/70 border border-[#E6DFD5] hover:text-[#1A1715]{% endif %}">
                     Interviewing ({{ stats.interviewing }})
                 </a>
-                <a href="/dashboard?status=discovered{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'discovered' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                    Discovered
-                </a>
-                <a href="/dashboard?status=skipped{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'skipped' %}bg-slate-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                    Skipped ({{ stats.skipped }})
-                </a>
-                <a href="/dashboard?status=needs_look{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if current_status == 'needs_look' %}bg-amber-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                <a href="/dashboard?status=needs_look{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if current_status == 'needs_look' %}bg-amber-600 text-white shadow-xs{% else %}bg-[#FAF8F5] text-[#2A2521]/70 border border-[#E6DFD5] hover:text-[#1A1715]{% endif %}">
                     Needs a Look ({{ stats.needs_look or 0 }})
+                </a>
+                <a href="/dashboard?status=skipped{% if current_query %}&q={{ current_query }}{% endif %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if current_status == 'skipped' %}bg-[#2A2521] text-white shadow-xs{% else %}bg-[#FAF8F5] text-[#2A2521]/50 border border-[#E6DFD5] hover:text-[#1A1715]{% endif %}">
+                    Skipped ({{ stats.skipped }})
                 </a>
             </div>
 
+            <!-- Query and Match Score Controls -->
             <div class="flex items-center gap-2 w-full md:w-auto">
-                <div class="relative flex-1 md:w-64">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                <div class="relative flex-1 md:w-60">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-[#2A2521]/40">
                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </span>
-                    <input type="text" name="q" value="{{ current_query or '' }}" placeholder="Filter roles, companies..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                    <input type="text" name="q" value="{{ current_query or '' }}" placeholder="Filter roles, companies..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all text-[#1A1715]">
                 </div>
-                <select name="min_score" onchange="this.form.submit()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select name="min_score" onchange="this.form.submit()" class="text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#C25E38] text-[#1A1715] font-medium">
                     <option value="0" {% if current_min_score == 0 %}selected{% endif %}>All Match Scores</option>
                     <option value="70" {% if current_min_score == 70 %}selected{% endif %}>70%+ Match</option>
                     <option value="80" {% if current_min_score == 80 %}selected{% endif %}>80%+ Match</option>
                     <option value="90" {% if current_min_score == 90 %}selected{% endif %}>90%+ Match</option>
                 </select>
-                <button type="submit" class="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 transition-colors">Filter</button>
+                <button type="submit" class="px-3.5 py-1.5 bg-[#1A1715] hover:bg-[#C25E38] text-white rounded-xl text-xs font-bold transition-colors">
+                    Filter
+                </button>
             </div>
         </form>
     </div>
 
-    <!-- Jobs Stream -->
+    <!-- Job Cards Stream -->
     {% if jobs and jobs|length > 0 %}
-    <div class="space-y-4">
+    <div class="space-y-3.5">
         {% for job in jobs %}
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-slate-300 transition-all flex flex-col md:flex-row justify-between gap-5 relative overflow-hidden" id="job-card-{{ job.id }}">
-            <!-- Left accent border based on match score -->
-            <div class="absolute left-0 top-0 bottom-0 w-1.5 {% if job.match_score and job.match_score >= 80 %}bg-emerald-500{% elif job.match_score and job.match_score >= 70 %}bg-indigo-500{% elif job.match_score and job.match_score >= 50 %}bg-amber-400{% else %}bg-slate-300{% endif %}"></div>
+        <div class="bg-white rounded-2xl p-5 border border-[#E6DFD5] shadow-xs hover:border-[#D5C7B7] hover:shadow-md transition-all flex flex-col md:flex-row justify-between gap-5 relative overflow-hidden group" id="job-card-{{ job.id }}">
+            
+            <!-- Left Accent Strip Indicating Match Strength -->
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 {% if job.match_score and job.match_score >= 80 %}bg-emerald-600{% elif job.match_score and job.match_score >= 70 %}bg-[#C25E38]{% elif job.match_score and job.match_score >= 50 %}bg-amber-500{% else %}bg-[#E6DFD5]{% endif %}"></div>
 
-            <div class="flex-1 space-y-2 pl-2">
+            <div class="flex-1 space-y-2.5 pl-2">
+                
+                <!-- Tag Badges Row -->
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider
-                        {% if job.platform == 'greenhouse' %}bg-emerald-100 text-emerald-800 border border-emerald-200
-                        {% elif job.platform == 'lever' %}bg-sky-100 text-sky-800 border border-sky-200
-                        {% elif job.platform == 'remotive' %}bg-purple-100 text-purple-800 border border-purple-200
-                        {% elif job.platform == 'arbeitnow' %}bg-amber-100 text-amber-800 border border-amber-200
-                        {% elif job.platform == 'themuse' %}bg-pink-100 text-pink-800 border border-pink-200
-                        {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
-                        <i class="fa-solid fa-satellite-dish mr-1"></i>{{ job.platform }}
+                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase tracking-wider
+                        {% if job.platform == 'greenhouse' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+                        {% elif job.platform == 'lever' %}bg-sky-50 text-sky-800 border border-sky-200
+                        {% elif job.platform == 'remotive' %}bg-purple-50 text-purple-800 border border-purple-200
+                        {% elif job.platform == 'arbeitnow' %}bg-amber-50 text-amber-800 border border-amber-200
+                        {% elif job.platform == 'themuse' %}bg-pink-50 text-pink-800 border border-pink-200
+                        {% else %}bg-[#FAF8F5] text-[#2A2521] border border-[#E6DFD5]{% endif %}">
+                        <i class="fa-solid fa-satellite-dish mr-1 text-[9px]"></i>{{ job.platform }}
                     </span>
 
                     {% if job.eligibility_status == 'unclear' %}
-                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i>Needs a Look
                     </span>
                     {% endif %}
 
                     {% if '3+ year' in (job.description or '').lower() or '3 years' in (job.description or '').lower() %}
-                    <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                        <i class="fa-solid fa-chart-line mr-1"></i>Stretch Match (3 yrs wishlist)
+                    <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                        <i class="fa-solid fa-chart-line mr-1"></i>3 yrs wishlist
                     </span>
                     {% endif %}
 
                     {% if job.platform in ['greenhouse', 'lever'] %}
-                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        <i class="fa-solid fa-bolt mr-1"></i>Direct ATS API Apply
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAF8F5] text-[#C25E38] border border-[#E6DFD5]">
+                        <i class="fa-solid fa-bolt mr-1"></i>Direct ATS API
                     </span>
                     {% endif %}
 
-                    <span class="text-xs text-slate-400">
+                    <span class="text-[11px] text-[#2A2521]/50 font-mono">
                         <i class="fa-regular fa-clock mr-1"></i>{{ job.date_posted.strftime('%b %d, %Y') if job.date_posted else 'Recent' }}
                     </span>
 
-                    <span class="text-xs font-medium px-2 py-0.5 rounded-md 
-                        {% if job.status == 'applied' %}bg-emerald-100 text-emerald-700
-                        {% elif job.status == 'review_pending' %}bg-indigo-100 text-indigo-700
-                        {% elif job.status == 'interviewing' %}bg-purple-100 text-purple-700
-                        {% elif job.status == 'skipped' %}bg-slate-100 text-slate-500
-                        {% else %}bg-slate-100 text-slate-600{% endif %}">
-                        Status: {{ job.status.replace('_', ' ').title() }}
+                    <span class="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md 
+                        {% if job.status == 'applied' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+                        {% elif job.status == 'review_pending' %}bg-[#FAF8F5] text-[#C25E38] border border-[#E6DFD5]
+                        {% elif job.status == 'interviewing' %}bg-purple-50 text-purple-800 border border-purple-200
+                        {% elif job.status == 'skipped' %}bg-[#FAF8F5] text-[#2A2521]/50 border border-[#E6DFD5]
+                        {% else %}bg-[#FAF8F5] text-[#2A2521]/70 border border-[#E6DFD5]{% endif %}">
+                        {{ job.status.replace('_', ' ').upper() }}
                     </span>
                 </div>
 
-                <h2 class="text-lg font-bold text-slate-900 hover:text-indigo-600 transition-colors">
+                <!-- Job Title & Link -->
+                <h2 class="text-base font-extrabold text-[#1A1715] hover:text-[#C25E38] transition-colors leading-snug">
                     <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer">{{ job.title }}</a>
                 </h2>
 
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
-                    <span class="font-semibold text-slate-800"><i class="fa-regular fa-building mr-1.5 text-slate-400"></i>{{ job.company }}</span>
-                    <span><i class="fa-solid fa-location-dot mr-1.5 text-slate-400"></i>{{ job.location }}</span>
-                    <span><i class="fa-solid fa-briefcase mr-1.5 text-slate-400"></i>{{ job.job_type }}</span>
+                <!-- Company, Location, Type, Salary -->
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#2A2521]/70">
+                    <span class="font-bold text-[#1A1715]"><i class="fa-regular fa-building mr-1.5 text-[#2A2521]/40"></i>{{ job.company }}</span>
+                    <span><i class="fa-solid fa-location-dot mr-1.5 text-[#2A2521]/40"></i>{{ job.location }}</span>
+                    <span><i class="fa-solid fa-briefcase mr-1.5 text-[#2A2521]/40"></i>{{ job.job_type }}</span>
                     {% if job.salary_range and job.salary_range != 'Not disclosed' %}
-                    <span class="text-emerald-700 font-medium"><i class="fa-solid fa-money-bill-wave mr-1.5"></i>{{ job.salary_range }}</span>
+                    <span class="text-emerald-700 font-bold font-mono"><i class="fa-solid fa-money-bill-wave mr-1.5"></i>{{ job.salary_range }}</span>
                     {% endif %}
                 </div>
 
-                <!-- Match Reasoning & Matching Skills -->
+                <!-- Match Reasoning & Matching Skills Card -->
                 {% if job.match_score %}
-                <div class="bg-slate-50 rounded-xl p-3 border border-slate-100 text-xs space-y-2 mt-2">
+                <div class="bg-[#FAF8F5] rounded-xl p-3 border border-[#E6DFD5] text-xs space-y-2 mt-2">
                     <div class="flex items-start gap-2">
-                        <i class="fa-solid fa-sparkles text-indigo-600 mt-0.5"></i>
-                        <span class="text-slate-700 font-medium">{{ job.match_reason }}</span>
+                        <i class="fa-solid fa-sparkles text-[#C25E38] mt-0.5 text-xs shrink-0"></i>
+                        <span class="text-[#1A1715] font-medium leading-relaxed">{{ job.match_reason }}</span>
                     </div>
 
                     {% if job.matching_skills and job.matching_skills|length > 0 %}
-                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span class="text-slate-400 text-[11px] font-semibold uppercase">Matched Skills:</span>
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[#E6DFD5]/60">
+                        <span class="text-[#2A2521]/50 text-[10px] font-mono font-bold uppercase">Matched:</span>
                         {% for skill in job.matching_skills %}
-                        <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-100">
+                        <span class="bg-white text-[#1A1715] px-2 py-0.5 rounded-md text-[10px] font-semibold border border-[#E6DFD5]">
                             {{ skill }}
                         </span>
                         {% endfor %}
@@ -183,47 +196,47 @@
             </div>
 
             <!-- Right Column: Match Score badge and action buttons -->
-            <div class="flex flex-col items-end justify-between gap-3 min-w-[200px] border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-5">
-                <div class="flex items-center gap-2">
+            <div class="flex flex-col items-end justify-between gap-3 min-w-[210px] border-t md:border-t-0 md:border-l border-[#E6DFD5] pt-3 md:pt-0 md:pl-5">
+                <div class="flex items-center gap-2.5">
                     <div class="text-right">
-                        <div class="text-2xl font-black {% if job.match_score and job.match_score >= 80 %}text-emerald-600{% elif job.match_score and job.match_score >= 70 %}text-indigo-600{% elif job.match_score and job.match_score >= 50 %}text-amber-600{% else %}text-slate-500{% endif %}">
+                        <div class="text-2xl font-black font-mono {% if job.match_score and job.match_score >= 80 %}text-emerald-700{% elif job.match_score and job.match_score >= 70 %}text-[#C25E38]{% elif job.match_score and job.match_score >= 50 %}text-amber-600{% else %}text-[#2A2521]/60{% endif %}">
                             {{ job.match_score or 50 }}%
                         </div>
-                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Gemini Fit Score</span>
+                        <span class="text-[9px] uppercase font-mono font-bold text-[#2A2521]/50 tracking-wider">AI Alignment</span>
                     </div>
-                    <div class="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base
-                        {% if job.match_score and job.match_score >= 80 %}bg-emerald-100 text-emerald-700
-                        {% elif job.match_score and job.match_score >= 70 %}bg-indigo-100 text-indigo-700
-                        {% elif job.match_score and job.match_score >= 50 %}bg-amber-100 text-amber-700
-                        {% else %}bg-slate-100 text-slate-500{% endif %}">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm
+                        {% if job.match_score and job.match_score >= 80 %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                        {% elif job.match_score and job.match_score >= 70 %}bg-[#FAF8F5] text-[#C25E38] border border-[#E6DFD5]
+                        {% elif job.match_score and job.match_score >= 50 %}bg-amber-50 text-amber-700 border border-amber-200
+                        {% else %}bg-[#FAF8F5] text-[#2A2521]/50 border border-[#E6DFD5]{% endif %}">
                         <i class="fa-solid fa-bullseye"></i>
                     </div>
                 </div>
 
                 <div class="w-full flex flex-col gap-2">
-                    <button onclick="openReviewModal({{ job.id }})" class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-200 transition-all flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        <span>1-Click Review & Apply</span>
+                    <button onclick="openReviewModal({{ job.id }})" class="w-full px-4 py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i>
+                        <span>1-Click Review &amp; Apply</span>
                     </button>
 
                     {% if job.status == 'applying' %}
-                    <button onclick="updateJobStatus({{ job.id }}, 'applied')" class="w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 animate-pulse" title="Click after submitting on company site">
+                    <button onclick="updateJobStatus({{ job.id }}, 'applied')" class="w-full px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 animate-pulse cursor-pointer" title="Click after submitting on company site">
                         <i class="fa-solid fa-check"></i>
                         <span>Mark as Applied</span>
                     </button>
                     {% endif %}
 
                     <div class="flex items-center gap-2 w-full">
-                        <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="flex-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium text-center transition-colors">
-                            <i class="fa-solid fa-arrow-up-right-from-square mr-1 text-slate-400"></i>View
+                        <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="flex-1 px-2.5 py-1.5 bg-[#FAF8F5] hover:bg-[#F5EFEB] text-[#1A1715] border border-[#E6DFD5] rounded-xl text-xs font-semibold text-center transition-colors">
+                            <i class="fa-solid fa-arrow-up-right-from-square mr-1 text-[10px] text-[#2A2521]/50"></i>View Portal
                         </a>
                         {% if job.status != 'skipped' %}
-                        <button onclick="updateJobStatus({{ job.id }}, 'skipped')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-lg text-xs font-medium transition-colors" title="Skip role">
+                        <button onclick="updateJobStatus({{ job.id }}, 'skipped')" class="px-2.5 py-1.5 bg-[#FAF8F5] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-[#2A2521]/60 border border-[#E6DFD5] rounded-xl text-xs font-medium transition-colors cursor-pointer" title="Skip role">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                         {% endif %}
                         {% if job.status == 'applied' %}
-                        <button onclick="updateJobStatus({{ job.id }}, 'interviewing')" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-medium transition-colors" title="Move to Interviewing">
+                        <button onclick="updateJobStatus({{ job.id }}, 'interviewing')" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition-colors cursor-pointer" title="Move to Interviewing">
                             <i class="fa-solid fa-user-check"></i>
                         </button>
                         {% endif %}
@@ -234,83 +247,89 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="bg-white rounded-2xl p-12 text-center border border-slate-200 space-y-4">
-        <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto text-2xl">
+    <!-- Empty State -->
+    <div class="bg-white rounded-3xl p-12 text-center border border-[#E6DFD5] shadow-xs space-y-4">
+        <div class="w-16 h-16 rounded-2xl bg-[#FAF8F5] text-[#C25E38] border border-[#E6DFD5] flex items-center justify-center mx-auto text-2xl">
             <i class="fa-solid fa-magnifying-glass"></i>
         </div>
         <div class="max-w-md mx-auto space-y-1">
-            <h3 class="text-base font-bold text-slate-900">No jobs found in this view</h3>
-            <p class="text-xs text-slate-500">Click <strong>Fetch Now</strong> to discover matching jobs from public APIs and ATS feeds, or adjust your filter query.</p>
+            <h3 class="text-base font-extrabold text-[#1A1715]">No jobs in this stream view</h3>
+            <p class="text-xs text-[#2A2521]/60">Trigger <strong>Fetch Jobs</strong> above to discover live roles matching your candidate profile across enabled connectors.</p>
         </div>
-        <button onclick="triggerSync()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all inline-flex items-center gap-2">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Fetch Jobs from Connectors</span>
+        <button onclick="triggerSync()" class="px-4 py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+            <span>Fetch Jobs Now</span>
         </button>
     </div>
     {% endif %}
 </div>
 
-<!-- 1-Click Review & Apply Modal -->
-<div id="reviewModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden">
+<!-- Bespoke 1-Click Review & Apply Modal -->
+<div id="reviewModal" class="fixed inset-0 z-50 bg-[#1A1715]/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-[#E6DFD5] max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+        
         <!-- Modal Header -->
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-            <div class="space-y-0.5">
-                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700" id="modalPlatformBadge">Greenhouse</span>
-                <h3 class="text-lg font-bold text-slate-900" id="modalJobTitle">Loading Job Title...</h3>
-                <p class="text-xs text-slate-500" id="modalJobCompanyLocation">Company - Location</p>
+        <div class="p-6 border-b border-[#E6DFD5] flex items-center justify-between bg-[#FAF8F5]/80">
+            <div class="space-y-1">
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white text-[#C25E38] border border-[#E6DFD5]" id="modalPlatformBadge">GREENHOUSE</span>
+                <h3 class="text-lg font-black text-[#1A1715]" id="modalJobTitle">Loading Job Title...</h3>
+                <p class="text-xs text-[#2A2521]/60 font-medium" id="modalJobCompanyLocation">Company &bull; Location</p>
             </div>
-            <button onclick="closeReviewModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors">
-                <i class="fa-solid fa-xmark"></i>
+            <button onclick="closeReviewModal()" class="w-8 h-8 rounded-xl bg-white border border-[#E6DFD5] hover:bg-[#FAF8F5] text-[#2A2521]/60 flex items-center justify-center transition-colors cursor-pointer">
+                <i class="fa-solid fa-xmark text-sm"></i>
             </button>
         </div>
 
         <!-- Modal Body (Scrollable) -->
         <div class="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
-            <!-- Candidate Profile Info -->
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/60 space-y-2">
+            
+            <!-- Candidate Submission Package Info -->
+            <div class="bg-[#FAF8F5] p-4 rounded-2xl border border-[#E6DFD5] space-y-2.5">
                 <div class="flex items-center justify-between">
-                    <span class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-id-badge text-indigo-600 mr-1.5"></i>Candidate Submission Package</span>
-                    <a href="/profile" target="_blank" class="text-indigo-600 hover:underline font-semibold text-[11px]">Edit Master Profile</a>
+                    <span class="font-extrabold text-[#1A1715] text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-id-badge text-[#C25E38]"></i>
+                        <span>Candidate Profile Package</span>
+                    </span>
+                    <a href="/profile" target="_blank" class="text-[#C25E38] hover:underline font-bold text-[11px]">Edit Profile</a>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-slate-600 pt-1">
-                    <div><span class="text-slate-400 block text-[10px] uppercase">Name</span><span id="modalCandidateName" class="font-semibold text-slate-800">-</span></div>
-                    <div><span class="text-slate-400 block text-[10px] uppercase">Email</span><span id="modalCandidateEmail" class="font-semibold text-slate-800">-</span></div>
-                    <div><span class="text-slate-400 block text-[10px] uppercase">Phone</span><span id="modalCandidatePhone" class="font-semibold text-slate-800">-</span></div>
-                    <div><span class="text-slate-400 block text-[10px] uppercase">Master Resume PDF</span><span id="modalResumeName" class="font-semibold text-emerald-600">-</span></div>
-                    <div class="col-span-2"><span class="text-slate-400 block text-[10px] uppercase">Authorization</span><span id="modalWorkAuth" class="font-semibold text-slate-800">-</span></div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[#2A2521]/80 pt-1">
+                    <div><span class="text-[#2A2521]/40 block text-[9px] uppercase font-mono font-bold">Candidate</span><span id="modalCandidateName" class="font-bold text-[#1A1715]">-</span></div>
+                    <div><span class="text-[#2A2521]/40 block text-[9px] uppercase font-mono font-bold">Email</span><span id="modalCandidateEmail" class="font-bold text-[#1A1715] font-mono">-</span></div>
+                    <div><span class="text-[#2A2521]/40 block text-[9px] uppercase font-mono font-bold">Phone</span><span id="modalCandidatePhone" class="font-bold text-[#1A1715]">-</span></div>
+                    <div><span class="text-[#2A2521]/40 block text-[9px] uppercase font-mono font-bold">Master Resume</span><span id="modalResumeName" class="font-bold text-emerald-700">-</span></div>
+                    <div class="col-span-2"><span class="text-[#2A2521]/40 block text-[9px] uppercase font-mono font-bold">Authorization</span><span id="modalWorkAuth" class="font-bold text-[#1A1715]">-</span></div>
                 </div>
             </div>
 
-            <!-- Employer Canary & Trap Alert Box (Dynamic) -->
-            <div id="canaryAlertBox" class="hidden p-3.5 rounded-xl border border-amber-300 bg-amber-50/80 text-amber-900 space-y-1.5">
+            <!-- Canary Keywords Alert -->
+            <div id="canaryAlertBox" class="hidden p-3.5 rounded-2xl border border-amber-300 bg-amber-50/80 text-amber-950 space-y-1.5">
                 <div class="flex items-center gap-2 font-bold text-xs">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
-                    <span>Employer Keyword &amp; Honeypot Verification</span>
+                    <i class="fa-solid fa-shield-halved text-amber-700"></i>
+                    <span>Canary Prompt &amp; Keyword Alignment</span>
                 </div>
-                <p id="canaryKeywordsText" class="text-[11px] text-amber-800"></p>
-                <div id="honeypotWarningText" class="hidden text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 p-2 rounded-lg"></div>
+                <p id="canaryKeywordsText" class="text-[11px] text-amber-900 leading-relaxed"></p>
+                <div id="honeypotWarningText" class="hidden text-[11px] font-bold text-rose-800 bg-rose-50 border border-rose-200 p-2.5 rounded-xl"></div>
             </div>
 
             <!-- Tailored Cover Letter -->
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <label class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-pen text-indigo-600"></i>
-                        <span>Tailored Cover Letter (Gemini Generated)</span>
+                    <label class="font-extrabold text-[#1A1715] text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-pen text-[#C25E38]"></i>
+                        <span>Tailored Cover Letter</span>
                     </label>
-                    <button onclick="regenerateCoverLetter()" id="regenBtn" class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold inline-flex items-center gap-1">
+                    <button onclick="regenerateCoverLetter()" id="regenBtn" class="text-[#C25E38] hover:text-[#A94E2C] text-xs font-bold inline-flex items-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-arrows-rotate" id="regenIcon"></i>
-                        <span>Regenerate with Gemini</span>
+                        <span>Regenerate with AI</span>
                     </button>
                 </div>
-                <textarea id="modalCoverLetter" rows="8" class="w-full p-3 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white leading-relaxed text-slate-800 transition-all"></textarea>
-                <p class="text-[11px] text-slate-400">Feel free to edit or polish directly in the box above before applying.</p>
+                <textarea id="modalCoverLetter" rows="8" class="w-full p-3.5 text-xs font-mono bg-[#FAF8F5] border border-[#E6DFD5] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white leading-relaxed text-[#1A1715] transition-all"></textarea>
+                <p class="text-[10px] text-[#2A2521]/50">Edit or refine the draft above before dispatching your application package.</p>
             </div>
 
             <!-- Submission Method Alert -->
-            <div id="modalSubmissionAlert" class="p-3.5 rounded-xl border flex items-start gap-3">
-                <i class="fa-solid fa-circle-info text-base mt-0.5" id="modalMethodIcon"></i>
+            <div id="modalSubmissionAlert" class="p-3.5 rounded-2xl border flex items-start gap-3">
+                <i class="fa-solid fa-circle-info text-sm mt-0.5" id="modalMethodIcon"></i>
                 <div class="space-y-0.5">
                     <p class="font-bold text-xs" id="modalMethodTitle">Submission Method</p>
                     <p class="text-[11px]" id="modalMethodDesc">Details</p>
@@ -319,15 +338,15 @@
         </div>
 
         <!-- Modal Footer -->
-        <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-            <button onclick="closeReviewModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+        <div class="p-4 border-t border-[#E6DFD5] bg-[#FAF8F5] flex items-center justify-between">
+            <button onclick="closeReviewModal()" class="px-4 py-2 bg-white hover:bg-[#F5EFEB] text-[#2A2521] border border-[#E6DFD5] text-xs font-bold rounded-xl transition-colors cursor-pointer">
                 Cancel
             </button>
             <div class="flex items-center gap-2">
-                <button onclick="copyCoverLetter()" class="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors inline-flex items-center gap-1.5">
+                <button onclick="copyCoverLetter()" class="px-3.5 py-2 bg-white border border-[#E6DFD5] hover:bg-[#F5EFEB] text-[#1A1715] text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-1.5 cursor-pointer">
                     <i class="fa-regular fa-copy"></i> Copy Letter
                 </button>
-                <button onclick="submitApplication()" id="submitApplyBtn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-2">
+                <button onclick="submitApplication()" id="submitApplyBtn" class="px-5 py-2 bg-[#1A1715] hover:bg-[#C25E38] text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-paper-plane"></i>
                     <span id="submitApplyText">Confirm &amp; Apply Now</span>
                 </button>
@@ -380,7 +399,7 @@
             if (hasCanary || hasTrap) {
                 canaryBox.classList.remove('hidden');
                 if (hasCanary) {
-                    canaryKeywordsText.innerHTML = `<strong>Required Employer Keyword:</strong> Found canary prompt: <span class="bg-amber-200 px-1.5 py-0.5 rounded font-mono font-bold text-amber-900">"${job.canary_keywords.join(', ')}"</span>. It has been woven organically into your cover letter draft below.`;
+                    canaryKeywordsText.innerHTML = `<strong>Required Employer Keyword:</strong> Found canary prompt: <span class="bg-amber-200 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">"${job.canary_keywords.join(', ')}"</span>. Weaved organically into your cover letter draft below.`;
                 } else {
                     canaryKeywordsText.innerHTML = '';
                 }
@@ -404,20 +423,20 @@
             const submitBtnText = document.getElementById('submitApplyText');
 
             if (['greenhouse', 'lever'].includes(job.platform.toLowerCase())) {
-                alertBox.className = 'p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/60 text-indigo-900 flex items-start gap-3';
-                alertIcon.className = 'fa-solid fa-bolt text-indigo-600 text-base mt-0.5';
+                alertBox.className = 'p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/70 text-emerald-950 flex items-start gap-3';
+                alertIcon.className = 'fa-solid fa-bolt text-emerald-700 text-sm mt-0.5';
                 alertTitle.innerText = 'Direct ATS API Submission';
                 alertDesc.innerText = `This job will be sent directly to ${job.company}'s ATS API endpoint with your resume and tailored cover letter.`;
                 submitBtnText.innerText = 'Submit via Direct ATS API';
             } else if (job.platform.toLowerCase().includes('workday') || job.url.toLowerCase().includes('workday')) {
-                alertBox.className = 'p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/60 text-indigo-900 flex items-start gap-3';
-                alertIcon.className = 'fa-solid fa-robot text-indigo-600 text-base mt-0.5';
+                alertBox.className = 'p-3.5 rounded-2xl border border-[#C25E38]/30 bg-[#FAF8F5] text-[#1A1715] flex items-start gap-3';
+                alertIcon.className = 'fa-solid fa-robot text-[#C25E38] text-sm mt-0.5';
                 alertTitle.innerText = 'Assisted Headed Browser Autofill';
                 alertDesc.innerText = 'Launches dedicated browser to autofill Workday wizard steps, with structural stop before submit for your final check.';
                 submitBtnText.innerText = 'Launch Headed Autofill';
             } else {
-                alertBox.className = 'p-3.5 rounded-xl border border-blue-200 bg-blue-50/60 text-blue-900 flex items-start gap-3';
-                alertIcon.className = 'fa-solid fa-arrow-up-right-from-square text-blue-600 text-base mt-0.5';
+                alertBox.className = 'p-3.5 rounded-2xl border border-[#E6DFD5] bg-[#FAF8F5] text-[#1A1715] flex items-start gap-3';
+                alertIcon.className = 'fa-solid fa-arrow-up-right-from-square text-[#C25E38] text-sm mt-0.5';
                 alertTitle.innerText = 'Assisted Apply & 1-Click Clipboard';
                 alertDesc.innerText = 'Your cover letter will be copied to your clipboard and the portal will open in a new tab. After submitting, click "Mark as Applied" on the dashboard.';
                 submitBtnText.innerText = 'Copy Letter & Open Portal';
@@ -452,7 +471,7 @@
             const data = await res.json();
             if (data.status === 'ok') {
                 document.getElementById('modalCoverLetter').value = data.cover_letter;
-                showToast('Cover letter regenerated with Gemini!', 'success');
+                showToast('Cover letter regenerated with AI!', 'success');
             } else {
                 showToast(data.message || 'Error regenerating cover letter.', 'error');
             }
@@ -522,4 +541,3 @@
     }
 </script>
 {% endblock %}
-
