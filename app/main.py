@@ -163,11 +163,14 @@ async def dashboard_page(
     # Order by match score descending, then date posted descending
     jobs = query.order_by(Job.match_score.desc().nullslast(), Job.date_posted.desc()).limit(100).all()
 
+    current_user = get_current_user_optional(request, db)
+
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
         context={
             "active_page": "dashboard",
+            "current_user": current_user,
             "stats": stats,
             "jobs": jobs,
             "current_status": status,
@@ -178,12 +181,26 @@ async def dashboard_page(
 
 @app.get("/profile", response_class=HTMLResponse)
 async def profile_page(request: Request, message: Optional[str] = None, db: Session = Depends(get_db)):
-    profile = db.query(CandidateProfile).first()
+    current_user = get_current_user_optional(request, db)
+    if current_user:
+        profile = db.query(CandidateProfile).filter(CandidateProfile.user_id == current_user.id).first()
+        if not profile:
+            profile = CandidateProfile(
+                user_id=current_user.id,
+                full_name=current_user.full_name,
+                email=current_user.email
+            )
+            db.add(profile)
+            db.commit()
+    else:
+        profile = db.query(CandidateProfile).first()
+
     return templates.TemplateResponse(
         request=request,
         name="profile.html",
         context={
             "active_page": "profile",
+            "current_user": current_user,
             "profile": profile,
             "message": message
         }
@@ -208,10 +225,17 @@ async def save_profile(
     resume_file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    profile = db.query(CandidateProfile).first()
-    if not profile:
-        profile = CandidateProfile()
-        db.add(profile)
+    current_user = get_current_user_optional(request, db)
+    if current_user:
+        profile = db.query(CandidateProfile).filter(CandidateProfile.user_id == current_user.id).first()
+        if not profile:
+            profile = CandidateProfile(user_id=current_user.id)
+            db.add(profile)
+    else:
+        profile = db.query(CandidateProfile).first()
+        if not profile:
+            profile = CandidateProfile()
+            db.add(profile)
 
     profile.full_name = full_name
     profile.email = email
@@ -248,6 +272,7 @@ async def save_profile(
         name="profile.html",
         context={
             "active_page": "profile",
+            "current_user": current_user,
             "profile": profile,
             "message": "Candidate Profile and Master Resume updated successfully!"
         }
@@ -255,6 +280,7 @@ async def save_profile(
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, message: Optional[str] = None, error: Optional[str] = None, db: Session = Depends(get_db)):
+    current_user = get_current_user_optional(request, db)
     connectors = db.query(ConnectorSetting).all()
     # Enrich connector models with connector capability metadata
     enriched_connectors = []
@@ -282,6 +308,7 @@ async def settings_page(request: Request, message: Optional[str] = None, error: 
         name="settings.html",
         context={
             "active_page": "settings",
+            "current_user": current_user,
             "connectors": enriched_connectors,
             "ai_keys": ai_keys,
             "gmail_connected": gmail_connected,
