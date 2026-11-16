@@ -94,8 +94,13 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 # --- Page Routes ---
 
 @app.get("/", response_class=HTMLResponse)
-async def index():
-    return RedirectResponse(url="/dashboard")
+async def index(request: Request):
+    """Public landing page showcasing architecture, live demo, and auth portal."""
+    return templates.TemplateResponse(
+        request=request,
+        name="landing.html",
+        context={}
+    )
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(

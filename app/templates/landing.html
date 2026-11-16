@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobPulse AI — The Autonomous Job Discovery & Assisted Application Engine</title>
+    <!-- Tailwind CSS with typography & forms plugins -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        claude: {
+                            50: '#FAF8F5',
+                            100: '#F3EFEA',
+                            200: '#E6DFD5',
+                            300: '#D5C7B7',
+                            400: '#BFA892',
+                            500: '#A4886E',
+                            800: '#2A2521',
+                            900: '#1A1715',
+                            accent: '#D97706', // warm amber
+                            terracotta: '#C25E38', // Claude warm coral/terracotta
+                            surface: '#FFFFFF',
+                            subtle: '#F9F8F6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FAF8F5; }
+        .glass-nav {
+            background: rgba(250, 248, 245, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .claude-card {
+            background: #FFFFFF;
+            border: 1px solid #E6DFD5;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .claude-card:hover {
+            border-color: #D5C7B7;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px -8px rgba(42, 37, 33, 0.06);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #1A1715 0%, #C25E38 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .terminal-box {
+            background: #1A1715;
+            color: #E6DFD5;
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body class="text-[#2A2521] antialiased selection:bg-[#C25E38]/20 selection:text-[#C25E38]">
+
+    <!-- 1. Navigation Bar -->
+    <header class="glass-nav sticky top-0 z-50 border-b border-[#E6DFD5]/80">
+        <div class="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="w-9 h-9 rounded-xl bg-[#C25E38] flex items-center justify-center text-white shadow-sm shadow-[#C25E38]/30 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-sparkles text-sm"></i>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-lg tracking-tight text-[#1A1715]">JobPulse</span>
+                    <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#E6DFD5]/60 text-[#2A2521] font-semibold border border-[#D5C7B7]">v2.0</span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-[#2A2521]/80">
+                <a href="#features" class="hover:text-[#C25E38] transition-colors">Architecture</a>
+                <a href="#how-it-works" class="hover:text-[#C25E38] transition-colors">How It Works</a>
+                <a href="#live-preview" class="hover:text-[#C25E38] transition-colors">Live Matcher</a>
+                <a href="#testimonials" class="hover:text-[#C25E38] transition-colors">Recruiter Showcase</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <button onclick="openAuthModal('login')" class="text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-[#E6DFD5]/50 transition-colors text-[#2A2521]">
+                    Sign In
+                </button>
+                <button onclick="openAuthModal('signup')" class="text-xs font-semibold px-4 py-2.5 rounded-xl bg-[#1A1715] hover:bg-[#2A2521] text-white shadow-sm transition-all flex items-center gap-2 group">
+                    <span>Get Started</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Hero Section -->
+    <section class="relative pt-20 pb-28 overflow-hidden">
+        <div class="max-w-5xl mx-auto px-6 text-center space-y-8">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F3EFEA] border border-[#E6DFD5] text-xs font-medium text-[#2A2521]">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Zero Blind Spam. 100% Verified Remote &amp; Sponsored Roles.</span>
+            </div>
+
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#1A1715] leading-[1.08]">
+                Stop grinding applications.<br>
+                <span class="gradient-text">Let autonomous AI drive them.</span>
+            </h1>
+
+            <p class="max-w-2xl mx-auto text-base sm:text-lg text-[#2A2521]/70 leading-relaxed font-normal">
+                JobPulse AI aggregates roles across Greenhouse, Lever, and global boards, filters out hidden residency traps, tailors cover letters to pass canary keywords, and drives headed form autofill.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button onclick="openAuthModal('signup')" class="w-full sm:w-auto px-6 py-3.5 bg-[#C25E38] hover:bg-[#b0532f] text-white font-semibold text-sm rounded-xl shadow-lg shadow-[#C25E38]/25 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Launch Free Workspace</span>
+                </button>
+                <a href="#live-preview" class="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-[#F3EFEA] border border-[#E6DFD5] text-[#1A1715] font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play text-xs text-[#C25E38]"></i>
+                    <span>Explore Live Interactive Demo</span>
+                </a>
+            </div>
+
+            <!-- Tech Credibility Banner -->
+            <div class="pt-12 border-t border-[#E6DFD5]/60 grid grid-cols-2 sm:grid-cols-4 gap-6 text-xs text-[#2A2521]/60 font-medium">
+                <div class="flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-shield-check text-[#C25E38]"></i>
+                    <span>Zero Plaintext Secrets</span>
+                </div>
+                <div class="flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-robot text-[#C25E38]"></i>
+                    <span>Headed Browser Structural Stop</span>
+                </div>
+                <div class="flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-google text-[#C25E38]"></i>
+                    <span>Gmail OTP Auto-Extraction</span>
+                </div>
+                <div class="flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bolt text-[#C25E38]"></i>
+                    <span>Hybrid Python Monolith</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Interactive Live Demo: "How JobPulse Works in Front of Your Eyes" -->
+    <section id="live-preview" class="py-16 bg-white border-y border-[#E6DFD5]">
+        <div class="max-w-6xl mx-auto px-6 space-y-10">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="text-xs font-mono uppercase tracking-wider text-[#C25E38] font-bold">Interactive Experience</span>
+                <h2 class="text-3xl font-bold tracking-tight text-[#1A1715]">The 1-Click Autonomous Flow</h2>
+                <p class="text-xs sm:text-sm text-[#2A2521]/70">Try the preview card below to see how JobPulse traps employer canary keywords and prepares your application package.</p>
+            </div>
+
+            <!-- Interactive Demo Card -->
+            <div class="claude-card rounded-2xl p-6 sm:p-8 max-w-3xl mx-auto space-y-6">
+                <div class="flex items-start justify-between gap-4 border-b border-[#E6DFD5] pb-5">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">Worldwide Remote</span>
+                            <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#F3EFEA] text-[#1A1715] font-bold border border-[#E6DFD5]">Remotive Feed</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-[#1A1715]">Full-Stack Python &amp; React Engineer</h3>
+                        <p class="text-xs text-[#2A2521]/70">Fluence International • $4,000–$6,000 / month • Worldwide B2B</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-black text-[#C25E38]">88%</div>
+                        <span class="text-[10px] uppercase font-bold text-[#2A2521]/50 font-mono">Gemini Match</span>
+                    </div>
+                </div>
+
+                <!-- Canary Badge detected -->
+                <div class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 flex items-start gap-3 text-xs">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+                    <div>
+                        <strong class="text-amber-900 block">Employer Canary Keyword Detected: "pineapple"</strong>
+                        <span class="text-amber-800 text-[11px]">The employer's JD requires mentioning "pineapple". JobPulse automatically weaves this into your generated letter while stripping their bot-trap disclosure phrase.</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-[#1A1715]">Generated Tailored Cover Letter</label>
+                    <div class="terminal-box p-4 rounded-xl text-xs leading-relaxed overflow-x-auto space-y-2">
+                        <p class="text-slate-400">// Automatically tailored to Fluence requirements:</p>
+                        <p>"Dear Hiring Team at Fluence International,</p>
+                        <p>With hands-on experience deploying FastAPI services, scalable React SPAs, and robust Postgres models, I am enthusiastic about contributing to your worldwide engineering roadmap. I have delivered production systems at scale and excel in high-autonomy environments...</p>
+                        <p class="text-[#E6DFD5] bg-[#2A2521] p-1.5 rounded border border-[#C25E38]/40">P.S. As specifically requested in your posting: pineapple."</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <div class="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Resume PDF Attached &bull; Contacts Pre-filled</span>
+                    </div>
+                    <button onclick="openAuthModal('signup')" class="px-5 py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Test Full Autofill</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Recruiter / Architecture Deep-Dive (Why this makes you look elite) -->
+    <section id="features" class="py-20 max-w-6xl mx-auto px-6 space-y-12">
+        <div class="text-center max-w-2xl mx-auto space-y-2">
+            <span class="text-xs font-mono uppercase tracking-wider text-[#C25E38] font-bold">Monolithic Architecture</span>
+            <h2 class="text-3xl font-bold tracking-tight text-[#1A1715]">Built Like An S&amp;P 500 Production System</h2>
+            <p class="text-xs sm:text-sm text-[#2A2521]/70">Engineered with intentional architectural choices you can confidently defend in any senior technical interview.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="claude-card p-6 rounded-2xl space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-[#F3EFEA] flex items-center justify-center text-[#C25E38] font-bold text-base">
+                    <i class="fa-solid fa-server"></i>
+                </div>
+                <h4 class="font-bold text-sm text-[#1A1715]">Hybrid Monolith Architecture</h4>
+                <p class="text-xs text-[#2A2521]/70 leading-relaxed">
+                    Single unified Python &amp; FastAPI repository. Zero microservice network latency, zero complex Node/npm build pipelines, and instant initial page renders with zero hydration lag.
+                </p>
+            </div>
+
+            <div class="claude-card p-6 rounded-2xl space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-[#F3EFEA] flex items-center justify-center text-[#C25E38] font-bold text-base">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <h4 class="font-bold text-sm text-[#1A1715]">OS Keyring Hardware Vault</h4>
+                <p class="text-xs text-[#2A2521]/70 leading-relaxed">
+                    Zero plaintext secrets in databases, git commits, or environment variables. All Google OAuth tokens and AI keys reside encrypted in Windows Credential Manager / macOS Keychain.
+                </p>
+            </div>
+
+            <div class="claude-card p-6 rounded-2xl space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-[#F3EFEA] flex items-center justify-center text-[#C25E38] font-bold text-base">
+                    <i class="fa-solid fa-filter"></i>
+                </div>
+                <h4 class="font-bold text-sm text-[#1A1715]">4-Layer Remote Eligibility Gate</h4>
+                <p class="text-xs text-[#2A2521]/70 leading-relaxed">
+                    Combines negation-aware regex, global contractor heuristics, and Gemini JSON parsing to disqualify foreign on-site roles unless international visa sponsorship is explicitly guaranteed.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Interactive Auth Modal (Sign In / Sign Up) -->
+    <div id="authModal" class="fixed inset-0 z-50 bg-[#1A1715]/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-[#E6DFD5] overflow-hidden transition-all">
+            <!-- Modal Header -->
+            <div class="p-6 border-b border-[#E6DFD5]/70 flex items-center justify-between bg-[#FAF8F5]/60">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-[#C25E38] flex items-center justify-center text-white text-xs">
+                        <i class="fa-solid fa-sparkles"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-[#1A1715]" id="authModalTitle">Welcome to JobPulse</h3>
+                        <p class="text-[11px] text-[#2A2521]/60" id="authModalSubtitle">Sign in to your private workspace</p>
+                    </div>
+                </div>
+                <button onclick="closeAuthModal()" class="w-7 h-7 rounded-lg hover:bg-[#E6DFD5]/60 text-[#2A2521]/60 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4">
+                <!-- 1-Click Google OAuth Button -->
+                <a href="/api/auth/google" class="w-full py-2.5 px-4 bg-white hover:bg-[#FAF8F5] text-[#1A1715] border border-[#D5C7B7] rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center gap-2.5 transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    <span>Continue with Google</span>
+                </a>
+
+                <div class="relative flex items-center justify-center">
+                    <div class="border-t border-[#E6DFD5] w-full"></div>
+                    <span class="bg-white px-3 text-[10px] text-[#2A2521]/40 uppercase font-mono">or email</span>
+                </div>
+
+                <!-- Email/Password Form -->
+                <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+                    <div id="nameField" class="hidden space-y-1">
+                        <label class="block text-[11px] font-bold text-[#1A1715]">Full Name</label>
+                        <input type="text" name="name" placeholder="Priyanshu Gupta" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="block text-[11px] font-bold text-[#1A1715]">Email Address</label>
+                        <input type="email" name="email" required placeholder="name@example.com" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="block text-[11px] font-bold text-[#1A1715]">Password</label>
+                        <input type="password" name="password" required placeholder="••••••••" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
+                    </div>
+
+                    <button type="submit" id="authSubmitBtn" class="w-full py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white font-bold text-xs rounded-xl shadow-md transition-all">
+                        Sign In
+                    </button>
+                </form>
+
+                <p class="text-center text-[11px] text-[#2A2521]/60 pt-2">
+                    <span id="authTogglePrompt">Don't have an account?</span>
+                    <button onclick="toggleAuthMode()" class="text-[#C25E38] font-bold hover:underline ml-1" id="authToggleBtn">Sign Up</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Footer -->
+    <footer class="border-t border-[#E6DFD5] py-12 text-center text-xs text-[#2A2521]/50 space-y-2">
+        <p>&copy; 2026 JobPulse AI. Open-source privacy-first architecture.</p>
+        <p class="font-mono text-[10px]">Built with FastAPI &bull; Playwright &bull; Google Gemini &bull; SQLite WAL &bull; OS Keyring</p>
+    </footer>
+
+    <script>
+        let currentAuthMode = 'login';
+
+        function openAuthModal(mode) {
+            currentAuthMode = mode;
+            const modal = document.getElementById('authModal');
+            const title = document.getElementById('authModalTitle');
+            const subtitle = document.getElementById('authModalSubtitle');
+            const nameField = document.getElementById('nameField');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const togglePrompt = document.getElementById('authTogglePrompt');
+            const toggleBtn = document.getElementById('authToggleBtn');
+
+            if (mode === 'signup') {
+                title.innerText = 'Create your Account';
+                subtitle.innerText = 'Start applying with autonomous precision';
+                nameField.classList.remove('hidden');
+                submitBtn.innerText = 'Create Free Account';
+                togglePrompt.innerText = 'Already have an account?';
+                toggleBtn.innerText = 'Sign In';
+            } else {
+                title.innerText = 'Welcome Back';
+                subtitle.innerText = 'Sign in to access your jobs & applications';
+                nameField.classList.add('hidden');
+                submitBtn.innerText = 'Sign In';
+                togglePrompt.innerText = "Don't have an account?";
+                toggleBtn.innerText = 'Sign Up';
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            openAuthModal(currentAuthMode === 'login' ? 'signup' : 'login');
+        }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            // Redirect to dashboard on demo login
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+</html>
