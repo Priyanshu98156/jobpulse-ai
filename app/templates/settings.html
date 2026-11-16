@@ -18,6 +18,51 @@
     </div>
     {% endif %}
 
+    {% if error %}
+    <div
+        class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- GMAIL OAUTH & AUTOMATED OTP INTEGRATION -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-brands fa-google text-red-500"></i> Gmail Account &amp; OTP Verification Engine
+                    </h2>
+                    {% if gmail_connected %}
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i>Connected: {{ gmail_email or 'Active' }}
+                    </span>
+                    {% else %}
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i>Not Connected
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-[11px] text-slate-500">Grants restricted read-only access (<code class="bg-slate-100 px-1 py-0.5 rounded">gmail.readonly</code>) to automatically grab 6-digit verification codes and magic login links for application portals without you typing them.</p>
+            </div>
+
+            {% if gmail_connected %}
+            <form method="POST" action="/api/gmail/disconnect" class="self-start sm:self-auto">
+                <button type="submit" class="px-3.5 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 font-semibold text-xs rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-link-slash"></i>
+                    <span>Disconnect Gmail</span>
+                </button>
+            </form>
+            {% else %}
+            <a href="/api/gmail/connect" class="px-4 py-2 bg-slate-900 hover:bg-black text-white font-semibold text-xs rounded-xl shadow-md transition-all inline-flex items-center gap-2 self-start sm:self-auto">
+                <i class="fa-brands fa-google text-red-400"></i>
+                <span>Connect with Google</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- MULTI-KEY AI POOL MANAGER -->
     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
