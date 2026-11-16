@@ -286,25 +286,31 @@
                     <span class="bg-white px-3 text-[10px] text-[#2A2521]/40 uppercase font-mono">or email</span>
                 </div>
 
+                <!-- Alert Container for Errors -->
+                <div id="authErrorMessage" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                    <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span id="authErrorText"></span>
+                </div>
+
                 <!-- Email/Password Form -->
                 <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
                     <div id="nameField" class="hidden space-y-1">
                         <label class="block text-[11px] font-bold text-[#1A1715]">Full Name</label>
-                        <input type="text" name="name" placeholder="Priyanshu Gupta" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
+                        <input type="text" id="authNameInput" name="name" placeholder="Priyanshu Gupta" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
                     </div>
 
                     <div class="space-y-1">
                         <label class="block text-[11px] font-bold text-[#1A1715]">Email Address</label>
-                        <input type="email" name="email" required placeholder="name@example.com" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
+                        <input type="email" id="authEmailInput" name="email" required placeholder="name@example.com" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
                     </div>
 
                     <div class="space-y-1">
                         <label class="block text-[11px] font-bold text-[#1A1715]">Password</label>
-                        <input type="password" name="password" required placeholder="••••••••" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
+                        <input type="password" id="authPasswordInput" name="password" required placeholder="••••••••" class="w-full p-2.5 text-xs bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white transition-all">
                     </div>
 
-                    <button type="submit" id="authSubmitBtn" class="w-full py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white font-bold text-xs rounded-xl shadow-md transition-all">
-                        Sign In
+                    <button type="submit" id="authSubmitBtn" class="w-full py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                        <span>Sign In</span>
                     </button>
                 </form>
 
@@ -334,19 +340,22 @@
             const submitBtn = document.getElementById('authSubmitBtn');
             const togglePrompt = document.getElementById('authTogglePrompt');
             const toggleBtn = document.getElementById('authToggleBtn');
+            const errDiv = document.getElementById('authErrorMessage');
+            
+            errDiv.classList.add('hidden');
 
             if (mode === 'signup') {
                 title.innerText = 'Create your Account';
                 subtitle.innerText = 'Start applying with autonomous precision';
                 nameField.classList.remove('hidden');
-                submitBtn.innerText = 'Create Free Account';
+                submitBtn.innerHTML = '<span>Create Free Account</span>';
                 togglePrompt.innerText = 'Already have an account?';
                 toggleBtn.innerText = 'Sign In';
             } else {
                 title.innerText = 'Welcome Back';
                 subtitle.innerText = 'Sign in to access your jobs & applications';
                 nameField.classList.add('hidden');
-                submitBtn.innerText = 'Sign In';
+                submitBtn.innerHTML = '<span>Sign In</span>';
                 togglePrompt.innerText = "Don't have an account?";
                 toggleBtn.innerText = 'Sign Up';
             }
@@ -361,11 +370,64 @@
             openAuthModal(currentAuthMode === 'login' ? 'signup' : 'login');
         }
 
-        function handleAuthSubmit(e) {
+        async function handleAuthSubmit(e) {
             e.preventDefault();
-            // Redirect to dashboard on demo login
-            window.location.href = '/dashboard';
+            const errDiv = document.getElementById('authErrorMessage');
+            const errText = document.getElementById('authErrorText');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const originalContent = submitBtn.innerHTML;
+
+            errDiv.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⌛</span> Processing...';
+
+            const email = document.getElementById('authEmailInput').value.trim();
+            const password = document.getElementById('authPasswordInput').value;
+            const nameInput = document.getElementById('authNameInput');
+            const fullName = nameInput ? nameInput.value.trim() : '';
+
+            const endpoint = currentAuthMode === 'signup' ? '/api/auth/signup' : '/api/auth/login';
+            const payload = { email, password };
+            if (currentAuthMode === 'signup' && fullName) {
+                payload.full_name = fullName;
+            }
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Authentication failed. Please verify your details.');
+                }
+                // Redirect on success
+                window.location.href = data.redirect || '/dashboard';
+            } catch (err) {
+                errText.innerText = err.message;
+                errDiv.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
         }
+
+        // Auto-open modal or display query alerts
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('auth') === 'signup') {
+                openAuthModal('signup');
+            } else if (params.get('auth') === 'login' || params.get('auth_required')) {
+                openAuthModal('login');
+            }
+            if (params.get('auth_error')) {
+                openAuthModal('login');
+                const errDiv = document.getElementById('authErrorMessage');
+                const errText = document.getElementById('authErrorText');
+                errText.innerText = 'OAuth Error: ' + params.get('auth_error');
+                errDiv.classList.remove('hidden');
+            }
+        });
     </script>
 </body>
 </html>

@@ -18,9 +18,12 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = True
 
-    # Security
+    # Security & Auth
     CSRF_SECRET: str = "jobpulse_local_csrf_secret_key"
     ALLOWED_HOSTS: list[str] = ["127.0.0.1:8000", "localhost:8000", "127.0.0.1", "localhost", "testserver"]
+    JWT_SECRET_KEY: str = "jobpulse_enterprise_jwt_secret_change_in_production_key_2026"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_DAYS: int = 7
 
     # AI Provider Defaults
     AI_PROVIDER: str = "gemini"

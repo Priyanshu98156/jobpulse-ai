@@ -5,7 +5,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
 
-from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -87,6 +87,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="JobPulse AI Assistant", lifespan=lifespan)
 app.add_middleware(SecurityHeadersAndCSRFMiddleware)
+
+# Authentication Router
+from app.core.auth_routes import router as auth_router
+from app.core.auth import get_current_user_optional, clear_auth_cookie
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+
+@app.get("/logout")
+async def logout_page(response: Response):
+    """Logs out the user and redirects to the landing page."""
+    clear_auth_cookie(response)
+    return RedirectResponse(url="/", status_code=303)
 
 # Templates
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
