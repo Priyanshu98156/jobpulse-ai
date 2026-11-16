@@ -1,0 +1,58 @@
+# Universal ATS & Web Application Form Selectors
+# Supports Greenhouse, Lever, Ashby, Workable, and generic HTML career portals.
+
+forms:
+  full_name:
+    - 'input[id*="name" i]'
+    - 'input[name*="name" i]'
+    - 'input[placeholder*="full name" i]'
+    - 'input[aria-label*="name" i]'
+  first_name:
+    - 'input[id*="first_name" i]'
+    - 'input[name*="first_name" i]'
+    - 'input[id*="firstname" i]'
+    - 'input[name*="firstname" i]'
+    - 'input[placeholder*="first name" i]'
+  last_name:
+    - 'input[id*="last_name" i]'
+    - 'input[name*="last_name" i]'
+    - 'input[id*="lastname" i]'
+    - 'input[name*="lastname" i]'
+    - 'input[placeholder*="last name" i]'
+  email:
+    - 'input[type="email"]'
+    - 'input[id*="email" i]'
+    - 'input[name*="email" i]'
+    - 'input[placeholder*="email" i]'
+  phone:
+    - 'input[type="tel"]'
+    - 'input[id*="phone" i]'
+    - 'input[name*="phone" i]'
+    - 'input[placeholder*="phone" i]'
+    - 'input[placeholder*="mobile" i]'
+  linkedin:
+    - 'input[id*="linkedin" i]'
+    - 'input[name*="linkedin" i]'
+    - 'input[placeholder*="linkedin" i]'
+  github:
+    - 'input[id*="github" i]'
+    - 'input[name*="github" i]'
+    - 'input[placeholder*="github" i]'
+  portfolio:
+    - 'input[id*="portfolio" i]'
+    - 'input[name*="portfolio" i]'
+    - 'input[id*="website" i]'
+    - 'input[name*="website" i]'
+    - 'input[placeholder*="website" i]'
+    - 'input[placeholder*="portfolio" i]'
+  resume_upload:
+    - 'input[type="file"]'
+    - 'input[id*="resume" i]'
+    - 'input[id*="cv" i]'
+    - 'input[name*="resume" i]'
+  cover_letter:
+    - 'textarea[id*="cover_letter" i]'
+    - 'textarea[name*="cover_letter" i]'
+    - 'textarea[placeholder*="cover letter" i]'
+    - 'textarea[id*="comments" i]'
+    - 'textarea[name*="comments" i]'
