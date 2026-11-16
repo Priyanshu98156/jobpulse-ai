@@ -192,8 +192,10 @@ async def profile_page(request: Request, message: Optional[str] = None, db: Sess
             )
             db.add(profile)
             db.commit()
+        answers = db.query(AnswerBank).filter((AnswerBank.user_id == current_user.id) | (AnswerBank.user_id.is_(None))).order_by(AnswerBank.id.desc()).all()
     else:
         profile = db.query(CandidateProfile).first()
+        answers = db.query(AnswerBank).order_by(AnswerBank.id.desc()).all()
 
     return templates.TemplateResponse(
         request=request,
@@ -202,6 +204,7 @@ async def profile_page(request: Request, message: Optional[str] = None, db: Sess
             "active_page": "profile",
             "current_user": current_user,
             "profile": profile,
+            "answers": answers,
             "message": message
         }
     )
@@ -756,9 +759,16 @@ class AddAnswerRequest(BaseModel):
     is_factual: Optional[bool] = True
 
 @app.get("/api/answers")
-async def list_answers(db: Session = Depends(get_db)):
+async def list_answers(request: Request, db: Session = Depends(get_db)):
     """List pre-verified answers from the Answer Bank."""
-    answers = db.query(AnswerBank).order_by(AnswerBank.id.desc()).all()
+    current_user = get_current_user_optional(request, db)
+    if current_user:
+        answers = db.query(AnswerBank).filter(
+            (AnswerBank.user_id == current_user.id) | (AnswerBank.user_id.is_(None))
+        ).order_by(AnswerBank.id.desc()).all()
+    else:
+        answers = db.query(AnswerBank).order_by(AnswerBank.id.desc()).all()
+
     return [
         {
             "id": a.id,
@@ -772,12 +782,15 @@ async def list_answers(db: Session = Depends(get_db)):
     ]
 
 @app.post("/api/answers")
-async def create_answer(req: AddAnswerRequest, db: Session = Depends(get_db)):
+async def create_answer(req: AddAnswerRequest, request: Request, db: Session = Depends(get_db)):
     """Add a new answer to the Answer Bank."""
     if not req.question_pattern.strip() or not req.answer_text.strip():
         raise HTTPException(status_code=400, detail="Pattern and answer cannot be empty.")
 
+    current_user = get_current_user_optional(request, db)
+
     new_ans = AnswerBank(
+        user_id=current_user.id if current_user else None,
         question_pattern=req.question_pattern.strip(),
         answer_text=req.answer_text.strip(),
         category=req.category or "general",
@@ -790,7 +803,7 @@ async def create_answer(req: AddAnswerRequest, db: Session = Depends(get_db)):
     return {"status": "ok", "message": "Answer added to bank!", "id": new_ans.id}
 
 @app.delete("/api/answers/{answer_id}")
-async def delete_answer(answer_id: int, db: Session = Depends(get_db)):
+async def delete_answer(answer_id: int, request: Request, db: Session = Depends(get_db)):
     """Delete an answer from the Answer Bank."""
     ans = db.query(AnswerBank).filter(AnswerBank.id == answer_id).first()
     if not ans:

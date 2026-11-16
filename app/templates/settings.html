@@ -1,62 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}Connectors & Settings - JobPulse AI{% endblock %}
+{% block title %}Settings &bull; AI Key Pool &amp; Connectors{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto space-y-6">
+<div class="max-w-5xl mx-auto space-y-7">
     <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">AI Key Pool &amp; Connector Settings</h1>
-        <p class="text-xs text-slate-500 mt-1">Manage multiple AI keys with automatic quota failover, round-robin load
-            balancing, and platform connectors.</p>
+        <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-black text-[#1A1715] tracking-tight">AI Key Pool &amp; Connector Infrastructure</h1>
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 bg-white text-[#C25E38] rounded-full border border-[#E6DFD5]">Zero Secrets in DB</span>
+        </div>
+        <p class="text-xs text-[#2A2521]/60 mt-1">Manage multiple AI keys with automatic quota failover, round-robin load balancing, and platform connectors.</p>
     </div>
 
     {% if message %}
-    <div
-        class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-        <i class="fa-solid fa-circle-check"></i>
+    <div class="p-4 rounded-2xl bg-white border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
         <span>{{ message }}</span>
     </div>
     {% endif %}
 
     {% if error %}
-    <div
-        class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-        <i class="fa-solid fa-triangle-exclamation"></i>
+    <div class="p-4 rounded-2xl bg-white border border-rose-300 text-rose-800 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
+        <i class="fa-solid fa-triangle-exclamation text-rose-600 text-sm"></i>
         <span>{{ error }}</span>
     </div>
     {% endif %}
 
     <!-- GMAIL OAUTH & AUTOMATED OTP INTEGRATION -->
-    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+    <div class="bg-white rounded-3xl p-6 border border-[#E6DFD5] shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6DFD5] pb-4">
             <div class="space-y-1">
                 <div class="flex items-center gap-2">
-                    <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fa-brands fa-google text-red-500"></i> Gmail Account &amp; OTP Verification Engine
+                    <h2 class="text-sm font-bold text-[#1A1715] flex items-center gap-2">
+                        <i class="fa-brands fa-google text-[#C25E38]"></i> Gmail Account &amp; OTP Verification Engine
                     </h2>
                     {% if gmail_connected %}
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        <i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i>Connected: {{ gmail_email or 'Active' }}
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i>{{ gmail_email or 'Connected' }}
                     </span>
                     {% else %}
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
                         <i class="fa-solid fa-circle-exclamation mr-1"></i>Not Connected
                     </span>
                     {% endif %}
                 </div>
-                <p class="text-[11px] text-slate-500">Grants restricted read-only access (<code class="bg-slate-100 px-1 py-0.5 rounded">gmail.readonly</code>) to automatically grab 6-digit verification codes and magic login links for application portals without you typing them.</p>
+                <p class="text-[11px] text-[#2A2521]/60">Restricted read-only access (<code class="bg-[#FAF8F5] border border-[#E6DFD5] px-1.5 py-0.5 rounded font-mono text-[10px]">gmail.readonly</code>) to automatically extract 6-digit verification codes and magic login links for ATS portals.</p>
             </div>
 
             {% if gmail_connected %}
             <form method="POST" action="/api/gmail/disconnect" class="self-start sm:self-auto">
-                <button type="submit" class="px-3.5 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 font-semibold text-xs rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
+                <button type="submit" class="px-4 py-2 bg-[#FAF8F5] hover:bg-rose-50 hover:text-rose-600 text-[#2A2521]/70 font-bold text-xs rounded-xl border border-[#E6DFD5] transition-colors inline-flex items-center gap-1.5 cursor-pointer">
                     <i class="fa-solid fa-link-slash"></i>
                     <span>Disconnect Gmail</span>
                 </button>
             </form>
             {% else %}
-            <a href="/api/gmail/connect" class="px-4 py-2 bg-slate-900 hover:bg-black text-white font-semibold text-xs rounded-xl shadow-md transition-all inline-flex items-center gap-2 self-start sm:self-auto">
-                <i class="fa-brands fa-google text-red-400"></i>
+            <a href="/api/gmail/connect" class="px-4 py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white font-bold text-xs rounded-xl shadow-xs transition-colors inline-flex items-center gap-2 self-start sm:self-auto">
+                <i class="fa-brands fa-google"></i>
                 <span>Connect with Google</span>
             </a>
             {% endif %}
@@ -64,30 +64,25 @@
     </div>
 
     <!-- MULTI-KEY AI POOL MANAGER -->
-    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+    <div class="bg-white rounded-3xl p-6 border border-[#E6DFD5] shadow-xs space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6DFD5] pb-4">
             <div class="space-y-1">
                 <div class="flex items-center gap-2">
-                    <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-layer-group text-indigo-600"></i> Multi-Key AI Pool
+                    <h2 class="text-sm font-bold text-[#1A1715] flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-[#C25E38]"></i> Multi-Key AI Pool
                     </h2>
-                    <span
-                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        <i class="fa-solid fa-arrows-spin mr-1"></i>Round-Robin Load Balanced
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#FAF8F5] text-[#C25E38] border border-[#E6DFD5]">
+                        Round-Robin
                     </span>
-                    <span
-                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <i class="fa-solid fa-shield-halved mr-1"></i>Auto-Failover Active
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        Auto-Failover
                     </span>
                 </div>
-                <p class="text-[11px] text-slate-500">Store multiple keys across Groq, OpenRouter, Gemini, Mistral, and
-                    Cerebras. If any key hits a rate limit (HTTP 429), it auto-cooldowns and instantly switches to the
-                    next healthy key.</p>
+                <p class="text-[11px] text-[#2A2521]/60">Store multiple keys across Groq, OpenRouter, Gemini, Mistral, and Cerebras. If any key hits a rate limit (HTTP 429), it auto-cooldowns and instantly switches to the next healthy key.</p>
             </div>
 
-            <button type="button" onclick="openAddKeyModal()"
-                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition-all inline-flex items-center gap-1.5 self-start sm:self-auto">
-                <i class="fa-solid fa-plus"></i>
+            <button type="button" onclick="openAddKeyModal()" class="px-4 py-2 bg-[#1A1715] hover:bg-[#C25E38] text-white font-bold text-xs rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
+                <i class="fa-solid fa-plus text-[11px]"></i>
                 <span>Add Key to Pool</span>
             </button>
         </div>
@@ -97,91 +92,76 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
-                    <tr
-                        class="border-b border-slate-200 text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
+                    <tr class="border-b border-[#E6DFD5] text-[#2A2521]/50 font-mono text-[10px] uppercase tracking-wider">
                         <th class="py-2.5 px-3">Provider &amp; Label</th>
                         <th class="py-2.5 px-3">Model</th>
                         <th class="py-2.5 px-3">Key Token</th>
-                        <th class="py-2.5 px-3">Status</th>
-                        <th class="py-2.5 px-3">Requests / Rate Hits</th>
+                        <th class="py-2.5 px-3">Health Status</th>
+                        <th class="py-2.5 px-3">Requests / Limits</th>
                         <th class="py-2.5 px-3 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-[#E6DFD5]">
                     {% for k in ai_keys %}
-                    <tr class="hover:bg-slate-50/70 transition-colors" id="key-row-{{ k.id }}">
+                    <tr class="hover:bg-[#FAF8F5]/80 transition-colors" id="key-row-{{ k.id }}">
                         <td class="py-3 px-3">
                             <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded font-bold text-[10px] uppercase
-                                    {% if k.provider == 'groq' %}bg-orange-100 text-orange-800 border border-orange-200
-                                    {% elif k.provider == 'openrouter' %}bg-blue-100 text-blue-800 border border-blue-200
-                                    {% elif k.provider == 'gemini' %}bg-emerald-100 text-emerald-800 border border-emerald-200
-                                    {% elif k.provider == 'mistral' %}bg-amber-100 text-amber-800 border border-amber-200
-                                    {% elif k.provider == 'cerebras' %}bg-purple-100 text-purple-800 border border-purple-200
-                                    {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                <span class="px-2 py-0.5 rounded-md font-mono font-bold text-[10px] uppercase
+                                    {% if k.provider == 'groq' %}bg-amber-50 text-amber-900 border border-amber-200
+                                    {% elif k.provider == 'openrouter' %}bg-sky-50 text-sky-900 border border-sky-200
+                                    {% elif k.provider == 'gemini' %}bg-emerald-50 text-emerald-900 border border-emerald-200
+                                    {% elif k.provider == 'mistral' %}bg-purple-50 text-purple-900 border border-purple-200
+                                    {% elif k.provider == 'cerebras' %}bg-rose-50 text-rose-900 border border-rose-200
+                                    {% else %}bg-[#FAF8F5] text-[#1A1715] border border-[#E6DFD5]{% endif %}">
                                     {{ k.provider }}
                                 </span>
-                                <span class="font-bold text-slate-800">{{ k.label }}</span>
+                                <span class="font-bold text-[#1A1715]">{{ k.label }}</span>
                             </div>
                         </td>
-                        <td class="py-3 px-3 font-mono text-[11px] text-slate-600">{{ k.model or 'default' }}</td>
-                        <td class="py-3 px-3 font-mono text-[11px] text-slate-500">
+                        <td class="py-3 px-3 font-mono text-[11px] text-[#2A2521]/70">{{ k.model or 'default' }}</td>
+                        <td class="py-3 px-3 font-mono text-[11px] text-[#2A2521]/50">
                             {{ k.api_key_masked or '••••••••' }}
                         </td>
                         <td class="py-3 px-3">
                             {% if not k.enabled %}
-                            <span
-                                class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
-                                <i class="fa-solid fa-ban mr-1"></i>Disabled
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#FAF8F5] text-[#2A2521]/40 border border-[#E6DFD5]">
+                                Disabled
                             </span>
                             {% elif k.is_in_cooldown %}
                             <div class="space-y-0.5">
-                                <span
-                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                                    <i class="fa-solid fa-hourglass-half"></i> In Cooldown
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-hourglass-half text-[9px]"></i> Cooldown
                                 </span>
                                 {% if k.cooldown_until %}
-                                <p class="text-[10px] text-amber-700">Until {{ k.cooldown_until.strftime('%H:%M:%S') }}
-                                </p>
+                                <p class="text-[9px] text-amber-700 font-mono">Until {{ k.cooldown_until.strftime('%H:%M:%S') }}</p>
                                 {% endif %}
                             </div>
                             {% else %}
-                            <span
-                                class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                <i class="fa-solid fa-circle-check mr-1"></i>Healthy
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                <i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i>Healthy
                             </span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-3 text-slate-600 text-[11px]">
-                            <span class="font-semibold text-slate-900">{{ k.successful_requests }}</span> / {{
-                            k.total_requests }} calls
+                        <td class="py-3 px-3 text-[#2A2521]/70 text-[11px] font-mono">
+                            <span class="font-bold text-[#1A1715]">{{ k.successful_requests }}</span> / {{ k.total_requests }}
                             {% if k.rate_limit_hits > 0 %}
-                            <span class="text-amber-600 font-bold ml-1">({{ k.rate_limit_hits }} limits)</span>
+                            <span class="text-amber-700 font-bold ml-1">({{ k.rate_limit_hits }} limits)</span>
                             {% endif %}
                         </td>
                         <td class="py-3 px-3 text-right">
                             <div class="inline-flex items-center gap-1.5">
-                                <button type="button" onclick="testKey({{ k.id }})" id="test-btn-{{ k.id }}"
-                                    class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-semibold transition-colors"
-                                    title="Test Key Validity & Latency">
-                                    <i class="fa-solid fa-bolt mr-1"></i>Test
+                                <button type="button" onclick="testKey({{ k.id }})" id="test-btn-{{ k.id }}" class="px-2.5 py-1 bg-[#FAF8F5] hover:bg-[#F5EFEB] text-[#1A1715] border border-[#E6DFD5] rounded-lg text-[10px] font-bold transition-colors cursor-pointer" title="Test Key Validity & Latency">
+                                    <i class="fa-solid fa-bolt mr-1 text-[#C25E38]"></i>Test
                                 </button>
                                 {% if k.is_in_cooldown %}
-                                <button type="button" onclick="resetKeyCooldown({{ k.id }})"
-                                    class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[11px] font-semibold transition-colors"
-                                    title="Clear Cooldown Early">
+                                <button type="button" onclick="resetKeyCooldown({{ k.id }})" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold transition-colors cursor-pointer" title="Clear Cooldown Early">
                                     <i class="fa-solid fa-rotate-left mr-1"></i>Reset
                                 </button>
                                 {% endif %}
-                                <button type="button" onclick="toggleKey({{ k.id }})"
-                                    class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-medium transition-colors"
-                                    title="Toggle On/Off">
-                                    <i
-                                        class="fa-solid {% if k.enabled %}fa-toggle-on text-indigo-600{% else %}fa-toggle-off text-slate-400{% endif %} text-sm"></i>
+                                <button type="button" onclick="toggleKey({{ k.id }})" class="px-2 py-1 bg-[#FAF8F5] hover:bg-[#F5EFEB] text-[#2A2521]/70 border border-[#E6DFD5] rounded-lg text-[10px] font-medium transition-colors cursor-pointer" title="Toggle On/Off">
+                                    <i class="fa-solid {% if k.enabled %}fa-toggle-on text-[#C25E38]{% else %}fa-toggle-off text-[#2A2521]/40{% endif %} text-sm"></i>
                                 </button>
-                                <button type="button" onclick="deleteKey({{ k.id }})"
-                                    class="px-2 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 rounded-lg text-[11px] transition-colors"
-                                    title="Delete Key">
+                                <button type="button" onclick="deleteKey({{ k.id }})" class="px-2 py-1 bg-[#FAF8F5] hover:bg-rose-50 hover:text-rose-600 text-[#2A2521]/40 border border-[#E6DFD5] rounded-lg text-[10px] transition-colors cursor-pointer" title="Delete Key">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </div>
@@ -192,20 +172,17 @@
             </table>
         </div>
         {% else %}
-        <div class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-3">
-            <div
-                class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-lg">
+        <div class="p-8 text-center bg-[#FAF8F5] rounded-2xl border border-dashed border-[#E6DFD5] space-y-3">
+            <div class="w-12 h-12 rounded-xl bg-white border border-[#E6DFD5] text-[#C25E38] flex items-center justify-center mx-auto text-base">
                 <i class="fa-solid fa-key"></i>
             </div>
             <div class="space-y-1">
-                <p class="font-bold text-slate-900 text-xs">No keys configured in the pool yet</p>
-                <p class="text-[11px] text-slate-500">Currently using built-in rule-based heuristic matching. Click
-                    <strong>Add Key to Pool</strong> to add free keys from Groq, OpenRouter, or Gemini.</p>
+                <p class="font-bold text-[#1A1715] text-xs">No keys configured in the pool yet</p>
+                <p class="text-[11px] text-[#2A2521]/60">Currently using built-in rule-based heuristic matching. Click <strong>Add Key to Pool</strong> to add free keys from Groq, OpenRouter, or Gemini.</p>
             </div>
-            <button type="button" onclick="openAddKeyModal()"
-                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5">
-                <i class="fa-solid fa-plus"></i>
-                <span>Add Your First Free Key</span>
+            <button type="button" onclick="openAddKeyModal()" class="px-4 py-2 bg-[#1A1715] hover:bg-[#C25E38] text-white font-bold text-xs rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+                <span>Add Your First Key</span>
             </button>
         </div>
         {% endif %}
@@ -214,108 +191,92 @@
     <!-- MAIN CONFIGURATION FORM -->
     <form method="POST" action="/settings" class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
+        
         <!-- Automation & Scheduler Settings -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <h2 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Automation &amp; Scheduling
+        <div class="bg-white rounded-3xl p-6 border border-[#E6DFD5] shadow-xs space-y-4">
+            <h2 class="text-sm font-bold text-[#1A1715] border-b border-[#E6DFD5] pb-3 flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-[#C25E38]"></i> Ingestion Automation &amp; Scheduling
             </h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Auto-Sync Worker</label>
-                    <select name="auto_sync_enabled"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
-                        <option value="true" {% if auto_sync_enabled %}selected{% endif %}>Enabled (Automatic)</option>
-                        <option value="false" {% if not auto_sync_enabled %}selected{% endif %}>Disabled (Manual Only)
-                        </option>
+                    <label class="block font-bold text-[#1A1715] mb-1">Auto-Sync Ingestion Worker</label>
+                    <select name="auto_sync_enabled" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] text-xs font-medium">
+                        <option value="true" {% if auto_sync_enabled %}selected{% endif %}>Enabled (Periodic Auto-Fetch)</option>
+                        <option value="false" {% if not auto_sync_enabled %}selected{% endif %}>Disabled (Manual Only)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Sync Interval (Minutes)</label>
-                    <input type="number" name="sync_interval_minutes" value="{{ sync_interval_minutes }}" min="15"
-                        max="1440"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                    <label class="block font-bold text-[#1A1715] mb-1">Sync Interval (Minutes)</label>
+                    <input type="number" name="sync_interval_minutes" value="{{ sync_interval_minutes }}" min="15" max="1440" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] text-xs font-mono">
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Desktop Toast Score Threshold</label>
-                    <input type="number" name="notification_min_score" value="{{ notification_min_score }}" min="50"
-                        max="100"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
-                    <p class="text-[11px] text-slate-400 mt-1">Triggers Windows notification for scores $\ge$ X%</p>
+                    <label class="block font-bold text-[#1A1715] mb-1">Desktop Toast Score Threshold</label>
+                    <input type="number" name="notification_min_score" value="{{ notification_min_score }}" min="50" max="100" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] text-xs font-mono">
+                    <p class="text-[10px] text-[#2A2521]/50 mt-1">Windows notification triggered for score &ge; X%</p>
                 </div>
             </div>
 
-            <!-- Adzuna Optional Credentials -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 text-xs">
+            <!-- Adzuna Credentials -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#E6DFD5] text-xs">
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Adzuna App ID (Optional)</label>
-                    <input type="text" name="adzuna_app_id" value="{{ adzuna_app_id or '' }}"
-                        placeholder="e.g. 1a2b3c4d"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <label class="block font-bold text-[#1A1715] mb-1">Adzuna App ID (Optional)</label>
+                    <input type="text" name="adzuna_app_id" value="{{ adzuna_app_id or '' }}" placeholder="e.g. 1a2b3c4d" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] font-mono text-xs">
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Adzuna App Key (Optional)</label>
-                    <input type="password" name="adzuna_app_key" value="{{ adzuna_app_key or '' }}"
-                        placeholder="e.g. 9f8e7d..."
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <label class="block font-bold text-[#1A1715] mb-1">Adzuna App Key (Optional)</label>
+                    <input type="password" name="adzuna_app_key" value="{{ adzuna_app_key or '' }}" placeholder="e.g. 9f8e7d..." class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] font-mono text-xs">
                 </div>
             </div>
         </div>
 
         <!-- Platform Connectors Control -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <h2 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <i class="fa-solid fa-plug text-indigo-600"></i> Platform Connectors
+        <div class="bg-white rounded-3xl p-6 border border-[#E6DFD5] shadow-xs space-y-4">
+            <h2 class="text-sm font-bold text-[#1A1715] border-b border-[#E6DFD5] pb-3 flex items-center gap-2">
+                <i class="fa-solid fa-plug text-[#C25E38]"></i> Platform Connectors
             </h2>
 
             <div class="space-y-3">
                 {% for conn in connectors %}
-                <div
-                    class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div class="p-4 rounded-2xl border border-[#E6DFD5] bg-[#FAF8F5]/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                     <div class="space-y-1">
                         <div class="flex items-center gap-2">
-                            <span class="font-bold text-slate-900">{{ conn.display_name }}</span>
+                            <span class="font-bold text-[#1A1715]">{{ conn.display_name }}</span>
                             {% if conn.has_submit_api %}
-                            <span
-                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#FAF8F5] text-[#C25E38] border border-[#E6DFD5]">
                                 Direct API Apply
                             </span>
                             {% else %}
-                            <span
-                                class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                                Open Discovery Feed
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-white text-[#2A2521]/70 border border-[#E6DFD5]">
+                                Discovery Feed
                             </span>
                             {% endif %}
                         </div>
-                        <p class="text-[11px] text-slate-500">
+                        <p class="text-[11px] text-[#2A2521]/60">
                             {% if conn.name == 'greenhouse' %}
-                            Queries public Greenhouse ATS boards for major tech firms with direct candidate POST apply
-                            support.
+                            Queries public Greenhouse ATS boards for major tech firms with direct candidate POST apply support.
                             {% elif conn.name == 'lever' %}
                             Queries public Lever postings API with automated direct candidate apply support.
                             {% elif conn.name == 'remotive' %}
-                            No auth required. High quality remote tech & data roles.
+                            No auth required. High quality remote tech &amp; data roles.
                             {% elif conn.name == 'arbeitnow' %}
-                            No auth required. European & worldwide remote software roles.
+                            No auth required. European &amp; worldwide remote software roles.
                             {% elif conn.name == 'themuse' %}
-                            No auth required. Enterprise & hypergrowth tech opportunities.
+                            No auth required. Enterprise &amp; hypergrowth tech opportunities.
                             {% elif conn.name == 'adzuna' %}
                             Requires free API key. Global aggregator with salary insights.
                             {% endif %}
                         </p>
                         {% if conn.last_synced_at %}
-                        <p class="text-[10px] text-slate-400">Last synced: {{ conn.last_synced_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <p class="text-[10px] text-[#2A2521]/40 font-mono">Last synced: {{ conn.last_synced_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
                         {% endif %}
                     </div>
 
                     <div class="flex items-center gap-3">
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="connector_{{ conn.name }}" value="true" class="sr-only peer" {%
-                                if conn.enabled %}checked{% endif %}>
-                            <div
-                                class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600">
-                            </div>
-                            <span class="ml-2 text-xs font-semibold text-slate-700">Enabled</span>
+                            <input type="checkbox" name="connector_{{ conn.name }}" value="true" class="sr-only peer" {% if conn.enabled %}checked{% endif %}>
+                            <div class="w-9 h-5 bg-[#E6DFD5] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#D5C7B7] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#C25E38]"></div>
+                            <span class="ml-2 text-xs font-bold text-[#1A1715]">Enabled</span>
                         </label>
                     </div>
                 </div>
@@ -324,8 +285,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit"
-                class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-2">
+            <button type="submit" class="px-6 py-2.5 bg-[#1A1715] hover:bg-[#C25E38] text-white font-bold text-xs rounded-xl shadow-xs transition-colors inline-flex items-center gap-2 cursor-pointer">
                 <i class="fa-solid fa-floppy-disk"></i>
                 <span>Save Connector Settings</span>
             </button>
@@ -334,73 +294,62 @@
 </div>
 
 <!-- ADD KEY MODAL -->
-<div id="addKeyModal"
-    class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+<div id="addKeyModal" class="fixed inset-0 z-50 bg-[#1A1715]/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-[#E6DFD5] overflow-hidden">
+        <div class="p-6 border-b border-[#E6DFD5] flex items-center justify-between bg-[#FAF8F5]">
             <div class="space-y-0.5">
-                <h3 class="text-base font-bold text-slate-900">Add Key to AI Pool</h3>
-                <p class="text-xs text-slate-500">Add any free key from Groq, OpenRouter, Gemini, Mistral, or Cerebras.
-                </p>
+                <h3 class="text-sm font-black text-[#1A1715]">Add Key to AI Pool</h3>
+                <p class="text-xs text-[#2A2521]/60">Supports Groq, OpenRouter, Gemini, Mistral, and Cerebras.</p>
             </div>
-            <button onclick="closeAddKeyModal()"
-                class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors">
-                <i class="fa-solid fa-xmark"></i>
+            <button onclick="closeAddKeyModal()" class="w-8 h-8 rounded-xl bg-white border border-[#E6DFD5] hover:bg-[#FAF8F5] text-[#2A2521]/60 flex items-center justify-center cursor-pointer">
+                <i class="fa-solid fa-xmark text-xs"></i>
             </button>
         </div>
 
         <div class="p-6 space-y-4 text-xs">
             <div>
-                <label class="block font-semibold text-slate-700 mb-1">Provider Preset</label>
-                <select id="modalKeyProvider" onchange="applyModalPreset()"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium">
+                <label class="block font-bold text-[#1A1715] mb-1">Provider Preset</label>
+                <select id="modalKeyProvider" onchange="applyModalPreset()" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] text-xs font-medium">
                     <option value="groq">⚡ Groq (Ultra-Fast &amp; Free - Llama 3.3 70B)</option>
-                    <option value="openrouter">🌐 OpenRouter (Free Tier - Llama 3, DeepSeek R1, Mistral)</option>
+                    <option value="openrouter">🌐 OpenRouter (Free Tier - Llama 3, DeepSeek R1)</option>
                     <option value="sambanova">🚀 SambaNova AI (Fast RDU Inference - Llama 3.3 70B)</option>
-                    <option value="nvidia">🟢 NVIDIA NIM (build.nvidia.com - 1000 Free Credits)</option>
+                    <option value="nvidia">🟢 NVIDIA NIM (build.nvidia.com - Free Credits)</option>
                     <option value="gemini">✨ Google Gemini (Free Tier - Gemini 2.5 Flash)</option>
                     <option value="mistral">🇫🇷 Mistral AI (Free Experiment Tier - Mistral Small)</option>
                     <option value="cerebras">⚡ Cerebras (High-Throughput Free - Llama 3.1)</option>
-                    <option value="custom">🛠 Custom / Local (Cloudflare, Ollama or OpenAI Compatible)</option>
+                    <option value="custom">🛠 Custom / Local (Ollama or OpenAI Compatible)</option>
                 </select>
-                <p class="text-[11px] text-slate-400 mt-1" id="modalPresetHelp">Free keys at console.groq.com (no credit
-                    card needed).</p>
+                <p class="text-[10px] text-[#2A2521]/50 mt-1" id="modalPresetHelp">Free keys at console.groq.com (no credit card needed).</p>
             </div>
 
             <div>
-                <label class="block font-semibold text-slate-700 mb-1">Friendly Label / Nickname</label>
-                <input type="text" id="modalKeyLabel" placeholder="e.g. My Free Groq Key #1"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                <label class="block font-bold text-[#1A1715] mb-1">Friendly Label / Nickname</label>
+                <input type="text" id="modalKeyLabel" placeholder="e.g. My Free Groq Key #1" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] text-xs text-[#1A1715]">
             </div>
 
             <div>
-                <label class="block font-semibold text-slate-700 mb-1">API Key *</label>
-                <input type="password" id="modalKeySecret" placeholder="Paste key string here..."
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                <label class="block font-bold text-[#1A1715] mb-1">API Key Token * (Vaulted into OS Keyring)</label>
+                <input type="password" id="modalKeySecret" placeholder="Paste key string here..." class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] font-mono text-xs">
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Model Name / ID</label>
-                    <input type="text" id="modalKeyModel" value="llama-3.3-70b-versatile"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <label class="block font-bold text-[#1A1715] mb-1">Model Name / ID</label>
+                    <input type="text" id="modalKeyModel" value="llama-3.3-70b-versatile" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] font-mono text-xs text-[#1A1715]">
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Base URL</label>
-                    <input type="text" id="modalKeyBaseUrl" value="https://api.groq.com/openai/v1"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs">
+                    <label class="block font-bold text-[#1A1715] mb-1">Base URL</label>
+                    <input type="text" id="modalKeyBaseUrl" value="https://api.groq.com/openai/v1" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] font-mono text-xs text-[#1A1715]">
                 </div>
             </div>
         </div>
 
-        <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
-            <button onclick="closeAddKeyModal()"
-                class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+        <div class="p-4 border-t border-[#E6DFD5] bg-[#FAF8F5] flex items-center justify-end gap-2">
+            <button onclick="closeAddKeyModal()" class="px-4 py-2 bg-white hover:bg-[#F5EFEB] text-[#2A2521] border border-[#E6DFD5] text-xs font-bold rounded-xl transition-colors cursor-pointer">
                 Cancel
             </button>
-            <button onclick="submitNewKey()" id="addKeySubmitBtn"
-                class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-300 transition-all inline-flex items-center gap-1.5">
-                <i class="fa-solid fa-plus"></i>
+            <button onclick="submitNewKey()" id="addKeySubmitBtn" class="px-5 py-2 bg-[#1A1715] hover:bg-[#C25E38] text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-plus text-[10px]"></i>
                 <span>Add to Pool</span>
             </button>
         </div>
@@ -515,7 +464,7 @@
     async function testKey(keyId) {
         const btn = document.getElementById(`test-btn-${keyId}`);
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin mr-1"></i>Pinging...';
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin mr-1"></i>Testing...';
         btn.disabled = true;
 
         try {
