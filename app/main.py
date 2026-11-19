@@ -3,9 +3,9 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
-from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File, Response
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File, Response, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -164,6 +164,8 @@ async def dashboard_page(
     jobs = query.order_by(Job.match_score.desc().nullslast(), Job.date_posted.desc()).limit(100).all()
 
     current_user = get_current_user_optional(request, db)
+    if current_user and not current_user.is_onboarded:
+        return RedirectResponse(url="/onboarding", status_code=303)
 
     return templates.TemplateResponse(
         request=request,
@@ -178,6 +180,101 @@ async def dashboard_page(
             "current_min_score": min_score
         }
     )
+
+@app.get("/onboarding", response_class=HTMLResponse)
+async def onboarding_page(request: Request, db: Session = Depends(get_db)):
+    current_user = get_current_user_optional(request, db)
+    if not current_user:
+        return RedirectResponse(url="/?auth=signup", status_code=303)
+
+    profile = db.query(CandidateProfile).filter(CandidateProfile.user_id == current_user.id).first()
+    if not profile:
+        profile = CandidateProfile(
+            user_id=current_user.id,
+            full_name=current_user.full_name or "",
+            email=current_user.email or ""
+        )
+        db.add(profile)
+        db.commit()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="onboarding.html",
+        context={
+            "active_page": "onboarding",
+            "current_user": current_user,
+            "user": current_user,
+            "profile": profile
+        }
+    )
+
+@app.post("/onboarding")
+async def handle_onboarding_submission(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    full_name: str = Form(...),
+    target_titles: str = Form(...),
+    skills: str = Form(""),
+    years_of_experience: float = Form(0.0),
+    base_country: str = Form("India"),
+    base_city: str = Form(""),
+    target_cities: Optional[str] = Form(""),
+    work_modes: List[str] = Form(default_factory=lambda: ["remote_worldwide", "remote_domestic"]),
+    visa_sponsorship_needed: Optional[str] = Form(None),
+    open_to_relocation: Optional[str] = Form(None),
+    resume_file: Optional[UploadFile] = File(None),
+    expected_salary: Optional[str] = Form("Competitive"),
+    notice_period: Optional[str] = Form("Immediate / 30 Days"),
+    summary: Optional[str] = Form(""),
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user_optional(request, db)
+    if not current_user:
+        return RedirectResponse(url="/?auth=login", status_code=303)
+
+    # Clean & validate target titles (enforce max 3)
+    titles_list = [t.strip() for t in target_titles.split(",") if t.strip()][:3]
+    if not titles_list:
+        titles_list = ["Data Scientist"]
+
+    cities_list = [c.strip() for c in (target_cities or "").split(",") if c.strip()]
+
+    profile = db.query(CandidateProfile).filter(CandidateProfile.user_id == current_user.id).first()
+    if not profile:
+        profile = CandidateProfile(user_id=current_user.id)
+        db.add(profile)
+
+    profile.full_name = full_name.strip()
+    profile.target_titles = ", ".join(titles_list)
+    profile.target_titles_list = titles_list
+    profile.skills = skills.strip()
+    profile.years_of_experience = years_of_experience
+    profile.base_country = base_country.strip()
+    profile.base_city = base_city.strip()
+    profile.target_cities = cities_list
+    profile.work_modes = work_modes if isinstance(work_modes, list) else [work_modes]
+    profile.visa_sponsorship_needed = (visa_sponsorship_needed == "true" or visa_sponsorship_needed is True)
+    profile.open_to_relocation = (open_to_relocation == "true" or open_to_relocation is True)
+    profile.expected_salary = expected_salary.strip() if expected_salary else "Competitive"
+    profile.notice_period = notice_period.strip() if notice_period else "30 Days"
+    profile.summary = summary.strip() if summary else ""
+
+    # Master Resume processing if provided
+    if resume_file and resume_file.filename:
+        try:
+            filename, resume_text = await resume_service.save_master_resume(resume_file)
+            profile.master_resume_filename = filename
+            profile.master_resume_text = resume_text
+        except Exception as e:
+            logger.warning(f"Failed to process master resume upload during onboarding: {e}")
+
+    current_user.is_onboarded = True
+    db.commit()
+
+    # Trigger targeted background job search for the candidate's top target title
+    background_tasks.add_task(connector_manager.fetch_all_connectors, query=titles_list[0])
+
+    return RedirectResponse(url="/dashboard?onboarded=true", status_code=303)
 
 @app.get("/profile", response_class=HTMLResponse)
 async def profile_page(request: Request, message: Optional[str] = None, db: Session = Depends(get_db)):
@@ -216,11 +313,15 @@ async def save_profile(
     email: str = Form(...),
     phone: Optional[str] = Form(""),
     location: Optional[str] = Form(""),
+    base_country: Optional[str] = Form("India"),
+    base_city: Optional[str] = Form(""),
     linkedin_url: Optional[str] = Form(""),
     github_url: Optional[str] = Form(""),
     target_titles: Optional[str] = Form(""),
     skills: Optional[str] = Form(""),
     years_of_experience: Optional[str] = Form("3.0"),
+    visa_sponsorship_needed: Optional[str] = Form(None),
+    open_to_relocation: Optional[str] = Form(None),
     work_authorization: Optional[str] = Form(""),
     notice_period: Optional[str] = Form(""),
     expected_salary: Optional[str] = Form(""),
@@ -244,9 +345,15 @@ async def save_profile(
     profile.email = email
     profile.phone = phone or ""
     profile.location = location or ""
+    profile.base_country = (base_country or "India").strip()
+    profile.base_city = (base_city or "").strip()
+    profile.visa_sponsorship_needed = (visa_sponsorship_needed == "true" or visa_sponsorship_needed is True)
+    profile.open_to_relocation = (open_to_relocation == "true" or open_to_relocation is True)
     profile.linkedin_url = linkedin_url or ""
     profile.github_url = github_url or ""
     profile.target_titles = target_titles or ""
+    if target_titles:
+        profile.target_titles_list = [t.strip() for t in target_titles.split(",") if t.strip()][:3]
     profile.skills = skills or ""
     try:
         profile.years_of_experience = float(years_of_experience) if years_of_experience else 3.0

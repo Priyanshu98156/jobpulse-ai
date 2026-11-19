@@ -6,6 +6,10 @@ from app.connectors.manager import ConnectorManager
 @pytest.mark.anyio
 async def test_ingestion_eligibility_gating_and_deduplication():
     db = SessionLocal()
+    # Clean up any leftover test jobs from prior runs
+    db.query(Job).filter(Job.platform == "mock_platform").delete()
+    db.commit()
+
     manager = ConnectorManager()
 
     # Mock connector returning 3 distinct job cases
@@ -72,11 +76,11 @@ async def test_ingestion_eligibility_gating_and_deduplication():
         assert j2.status in ("review_pending", "discovered")
         assert j2.match_score is not None
 
-        # Check job 3: unclear / conflicting signals -> Needs a Look
+        # Check job 3: unclear / conflicting signals -> Needs a Look (kept in discovered/needs_look, not review_pending)
         j3 = db.query(Job).filter(Job.external_id == "job-unclear-1").first()
         assert j3 is not None
         assert j3.eligibility_status == "unclear"
-        assert j3.status == "review_pending"
+        assert j3.status in ("discovered", "needs_look")
 
         # Test deduplication: running sync again must add 0 jobs
         summary_repeat = await manager.sync_all_jobs(db, limit_per_connector=10)

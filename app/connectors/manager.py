@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
-from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, utc_now
+from app.models import Job, CandidateProfile, ApplicationPackage, ConnectorSetting, UserJobApplication, utc_now
 from app.connectors.remotive import RemotiveConnector
 from app.connectors.arbeitnow import ArbeitnowConnector
 from app.connectors.themuse import TheMuseConnector
@@ -87,12 +87,14 @@ class ConnectorManager:
                 if existing:
                     continue
 
-                # Step 1: Remote Eligibility Gate (4 Layers)
+                # Step 1: Remote Eligibility Gate (4 Layers with Dynamic Candidate Preferences)
                 el_verdict = eligibility_service.evaluate_job(
                     title=job_data["title"],
                     company=job_data["company"],
                     location=job_data["location"],
-                    description=job_data["description"]
+                    description=job_data["description"],
+                    is_remote=job_data.get("is_remote"),
+                    candidate_profile=profile
                 )
 
                 # If hard ineligible, drop to skipped to save AI scoring tokens
@@ -113,6 +115,15 @@ class ConnectorManager:
                         status="skipped"
                     )
                     db.add(new_job)
+                    db.flush()
+                    if profile and profile.user_id:
+                        db.add(UserJobApplication(
+                            user_id=profile.user_id,
+                            job_id=new_job.id,
+                            status="skipped",
+                            match_score=0,
+                            match_reason=el_verdict.reason
+                        ))
                     continue
 
                 # Step 2: AI Matching & Scoring for Eligible & Unclear (Needs a Look) Jobs
@@ -135,7 +146,8 @@ class ConnectorManager:
                 missing_keywords = match_result.get("missing_keywords", [])
 
                 is_unclear = (el_verdict.status == EligibilityStatus.UNCLEAR or el_verdict.requires_human_look)
-                initial_status = "review_pending" if (score >= 70 or is_unclear) else "discovered"
+                # Only definitively eligible roles with score >= 70 enter review_pending. Unclear roles stay discovered (Needs a Look)
+                initial_status = "review_pending" if (score >= 70 and not is_unclear) else "discovered"
 
                 new_job = Job(
                     external_id=ext_id,
@@ -158,6 +170,15 @@ class ConnectorManager:
                 )
                 db.add(new_job)
                 db.flush() # get new_job.id
+
+                if profile and profile.user_id:
+                    db.add(UserJobApplication(
+                        user_id=profile.user_id,
+                        job_id=new_job.id,
+                        status=initial_status,
+                        match_score=score,
+                        match_reason=reason
+                    ))
 
                 # If score is good, pre-generate draft application package
                 if score >= 70:

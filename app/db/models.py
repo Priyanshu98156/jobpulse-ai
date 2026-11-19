@@ -22,6 +22,7 @@ class User(Base):
     avatar_url = Column(String(500), default="")
     auth_provider = Column(String(50), default="local") # local, google
     is_active = Column(Boolean, default=True)
+    is_onboarded = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
@@ -45,9 +46,16 @@ class CandidateProfile(Base):
     github_url = Column(String(300), default="")
     portfolio_url = Column(String(300), default="")
     
-    # Target preferences
+    # Target preferences & Dynamic Eligibility
+    base_city = Column(String(100), default="")
+    base_country = Column(String(100), default="India")
     target_titles = Column(Text, default="Data Scientist, Machine Learning Engineer, Python Developer")
+    target_titles_list = Column(JSON, default=list) # Enforced max 3: e.g. ["Data Scientist", "Python Developer"]
     target_locations = Column(Text, default="Remote, Worldwide, India, US")
+    target_cities = Column(JSON, default=list)       # e.g. ["Bengaluru", "Hyderabad", "Remote"]
+    work_modes = Column(JSON, default=lambda: ["remote_worldwide", "remote_domestic"]) # ["remote_worldwide", "remote_domestic", "hybrid", "onsite"]
+    visa_sponsorship_needed = Column(Boolean, default=False)
+    open_to_relocation = Column(Boolean, default=False)
     skills = Column(Text, default="Python, Machine Learning, Deep Learning, SQL, FastAPI, Docker")
     years_of_experience = Column(Float, default=3.0)
     work_authorization = Column(String(200), default="Authorized to work in India / US Remote")

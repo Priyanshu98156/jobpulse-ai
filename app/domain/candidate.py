@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -88,4 +88,30 @@ class AnswerBankDomain(BaseModel):
     category: str = "general" # legal, compensation, technical, personal
     is_factual: bool = True # If True, NEVER modified or hallucinated by LLMs
     source: str = "user_verified" # user_verified, resume_extracted
+
+
+class CandidateOnboardingDomain(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=200)
+    base_city: str = Field(default="", max_length=100)
+    base_country: str = Field(default="India", max_length=100)
+    target_titles: List[str] = Field(..., min_length=1)
+    target_cities: List[str] = Field(default_factory=list)
+    work_modes: List[str] = Field(default_factory=lambda: ["remote_worldwide", "remote_domestic"])
+    skills: str = Field(default="")
+    years_of_experience: float = Field(default=0.0, ge=0.0, le=50.0)
+    visa_sponsorship_needed: bool = False
+    open_to_relocation: bool = False
+    expected_salary: str = Field(default="Competitive", max_length=100)
+    notice_period: str = Field(default="Immediate / 30 Days", max_length=100)
+    summary: Optional[str] = ""
+
+    @field_validator("target_titles")
+    @classmethod
+    def validate_target_titles(cls, v: List[str]) -> List[str]:
+        cleaned = [t.strip() for t in v if t and t.strip()]
+        if not cleaned:
+            raise ValueError("At least one target job title is required.")
+        if len(cleaned) > 3:
+            raise ValueError("Maximum 3 target job titles allowed.")
+        return cleaned[:3]
 

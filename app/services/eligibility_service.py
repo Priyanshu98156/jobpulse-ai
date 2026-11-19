@@ -114,12 +114,44 @@ class RemoteEligibilityService:
             return match.group()
         return None
 
-    def evaluate_deterministic(self, title: str, location: str, description: str) -> Optional[EligibilityVerdict]:
+    def evaluate_deterministic(
+        self,
+        title: str,
+        location: str,
+        description: str,
+        is_remote: Optional[bool] = None,
+        candidate_profile: Optional[Any] = None
+    ) -> Optional[EligibilityVerdict]:
         """
-        Runs Layer 1 (Deterministic Regex with Negation) and Layer 2 (Global & Contractor Rules).
+        Runs Layer 1 (Deterministic Regex with Negation) and Layer 2 (Global & Dynamic Candidate Preferences).
         Returns EligibilityVerdict if definitive, or None if Layer 3 (LLM) is needed.
         """
         combined_text = f"{title}\n{location}\n{description}".lower()
+        loc_lower = location.lower().strip()
+
+        # Extract candidate dynamic preferences (defaults to India, remote worldwide)
+        base_country = "india"
+        base_city = ""
+        target_cities = []
+        work_modes = ["remote_worldwide", "remote_domestic"]
+        visa_sponsorship_needed = False
+        open_to_relocation = False
+
+        if candidate_profile:
+            if isinstance(candidate_profile, dict):
+                base_country = (candidate_profile.get("base_country") or "India").strip().lower()
+                base_city = (candidate_profile.get("base_city") or "").strip().lower()
+                target_cities = [c.strip().lower() for c in candidate_profile.get("target_cities") or []]
+                work_modes = candidate_profile.get("work_modes") or ["remote_worldwide", "remote_domestic"]
+                visa_sponsorship_needed = bool(candidate_profile.get("visa_sponsorship_needed", False))
+                open_to_relocation = bool(candidate_profile.get("open_to_relocation", False))
+            else:
+                base_country = (getattr(candidate_profile, "base_country", "") or "India").strip().lower()
+                base_city = (getattr(candidate_profile, "base_city", "") or "").strip().lower()
+                target_cities = [c.strip().lower() for c in getattr(candidate_profile, "target_cities", []) or []]
+                work_modes = getattr(candidate_profile, "work_modes", []) or ["remote_worldwide", "remote_domestic"]
+                visa_sponsorship_needed = bool(getattr(candidate_profile, "visa_sponsorship_needed", False))
+                open_to_relocation = bool(getattr(candidate_profile, "open_to_relocation", False))
 
         # Check explicit visa sponsorship or relocation assistance
         has_sponsorship_relocation = False
@@ -131,7 +163,7 @@ class RemoteEligibilityService:
                 matched_sponsor_quote = m.group()
                 break
 
-        # Check positive indicators first (India, Worldwide, B2B Contractor)
+        # Check positive indicators (India, Worldwide, B2B Contractor, or Candidate's Base Country/City)
         has_global_term = False
         matched_global_quote = ""
         for g_term in GLOBAL_TERMS:
@@ -140,6 +172,13 @@ class RemoteEligibilityService:
                 has_global_term = True
                 matched_global_quote = m.group()
                 break
+
+        # Check if location directly matches candidate's base country or target cities
+        matches_candidate_location = (
+            (base_country and base_country in loc_lower) or
+            (base_city and base_city in loc_lower) or
+            any(tc and tc in loc_lower for tc in target_cities)
+        )
 
         # Layer 1: Check disqualifying terms
         disqualified_snippet = None
@@ -161,7 +200,6 @@ class RemoteEligibilityService:
 
         # Conflict resolution between disqualifying and global terms
         if disqualified_snippet and has_global_term:
-            # Conflicting signals -> Route to Layer 4 (Needs a Look)
             return EligibilityVerdict(
                 status=EligibilityStatus.UNCLEAR,
                 reason=f"Conflicting signals: Found '{disqualified_snippet}' but also global term '{matched_global_quote}'.",
@@ -171,7 +209,6 @@ class RemoteEligibilityService:
             )
 
         if disqualified_snippet:
-            # Definitive ineligibility (e.g. physical hybrid 3 days a week in London without sponsorship)
             return EligibilityVerdict(
                 status=EligibilityStatus.INELIGIBLE,
                 reason=f"Disqualifying requirement found: '{disqualified_snippet}'.",
@@ -180,13 +217,36 @@ class RemoteEligibilityService:
                 requires_human_look=False
             )
 
+        # Dynamic Check: Foreign Non-Remote Role without Sponsorship
+        # Known foreign hubs/indicators when candidate is not located there
+        foreign_locations = ["london", "united kingdom", "uk", "germany", "berlin", "munich", "france", "paris", "netherlands", "amsterdam", "canada", "toronto", "vancouver", "australia", "sydney", "singapore", "new york", "san francisco", "austin", "chicago", "seattle"]
+        is_foreign = any(fl in loc_lower for fl in foreign_locations) and not matches_candidate_location
+        has_remote_tag = is_remote is True or any(x in loc_lower for x in ["remote", "worldwide", "anywhere", "work from anywhere"])
+
+        if is_foreign and not has_remote_tag and not has_sponsorship_relocation:
+            return EligibilityVerdict(
+                status=EligibilityStatus.INELIGIBLE,
+                reason=f"Onsite/hybrid role in '{location}' is outside candidate's base location ({base_country.title()}) and does not offer visa sponsorship.",
+                confidence=0.95,
+                evidence_quote=location,
+                requires_human_look=False
+            )
+
         # Explicit location checks
-        loc_lower = location.lower().strip()
-        if any(x in loc_lower for x in ["worldwide", "anywhere", "global", "india", "remote - worldwide"]):
+        if any(x in loc_lower for x in ["worldwide", "anywhere", "global", "remote - worldwide"]):
             return EligibilityVerdict(
                 status=EligibilityStatus.ELIGIBLE,
-                reason=f"Location '{location}' is worldwide/India remote eligible.",
+                reason=f"Location '{location}' is worldwide remote eligible.",
                 confidence=0.95,
+                evidence_quote=location,
+                requires_human_look=False
+            )
+
+        if matches_candidate_location:
+            return EligibilityVerdict(
+                status=EligibilityStatus.ELIGIBLE,
+                reason=f"Location '{location}' matches candidate's target preferences ({base_country.title()}).",
+                confidence=0.92,
                 evidence_quote=location,
                 requires_human_look=False
             )
@@ -320,13 +380,21 @@ class RemoteEligibilityService:
         company: str,
         location: str,
         description: str,
+        is_remote: Optional[bool] = None,
+        candidate_profile: Optional[Any] = None,
         llm_caller = None
     ) -> EligibilityVerdict:
         """
-        Full 4-Layer evaluation pipeline with YoE classification and Canary/Trap detection.
+        Full 4-Layer evaluation pipeline with YoE classification, Canary/Trap detection, and candidate preferences.
         """
         # Step 1: Run deterministic layers (Layer 1 & 2)
-        verdict = self.evaluate_deterministic(title, location, description)
+        verdict = self.evaluate_deterministic(
+            title=title,
+            location=location,
+            description=description,
+            is_remote=is_remote,
+            candidate_profile=candidate_profile
+        )
         if verdict is None:
             # Step 2: Run Layer 3 (LLM) if caller provided
             if llm_caller is not None:

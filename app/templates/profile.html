@@ -82,8 +82,12 @@
                     <input type="text" name="phone" value="{{ profile.phone or '' }}" placeholder="+91 98765 43210" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-xs text-[#1A1715]">
                 </div>
                 <div>
-                    <label class="block font-bold text-[#1A1715] mb-1">Current Location / Base City</label>
-                    <input type="text" name="location" value="{{ profile.location or '' }}" placeholder="Bengaluru, India" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-xs text-[#1A1715]">
+                    <label class="block font-bold text-[#1A1715] mb-1">Base Country</label>
+                    <input type="text" name="base_country" value="{{ profile.base_country or 'India' }}" placeholder="India, United States, UK" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-xs text-[#1A1715]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#1A1715] mb-1">Current Base City</label>
+                    <input type="text" name="base_city" value="{{ profile.base_city or '' }}" placeholder="Bengaluru, London, New York" class="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-xs text-[#1A1715]">
                 </div>
                 <div>
                     <label class="block font-bold text-[#1A1715] mb-1">LinkedIn Profile URL</label>

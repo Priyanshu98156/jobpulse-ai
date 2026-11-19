@@ -54,6 +54,7 @@ class ArbeitnowConnector(BaseConnector):
                         "title": title or "Untitled Role",
                         "company": item.get("company_name", "Unknown Company"),
                         "location": loc,
+                        "is_remote": bool(item.get("remote", False)),
                         "job_type": job_type_str,
                         "salary_range": "Not disclosed",
                         "url": item.get("url", ""),

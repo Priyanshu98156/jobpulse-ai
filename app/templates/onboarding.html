@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+
+{% block title %}Complete Your Candidate Profile — JobPulse AI{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4 sm:px-6">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F5EBE1] text-[#C25E38] border border-[#E6DFD5] mb-3">
+            <span class="w-2 h-2 rounded-full bg-[#C25E38] animate-pulse"></span>
+            Profile Onboarding
+        </span>
+        <h1 class="font-serif text-3xl sm:text-4xl text-[#1A1715] font-normal tracking-tight">Tailor Your Job Engine</h1>
+        <p class="text-[#6E675F] text-sm mt-2 max-w-lg mx-auto">
+            Set your target roles, locations, and resume once. Our AI pipeline personalizes every application to your exact profile.
+        </p>
+    </div>
+
+    <!-- Stepper Tracker -->
+    <div class="bg-white border border-[#E6DFD5] rounded-2xl p-4 sm:p-6 mb-8 shadow-sm">
+        <div class="flex items-center justify-between relative">
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#E6DFD5] w-full z-0"></div>
+            <div id="step-progress-bar" class="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#C25E38] transition-all duration-300 z-0" style="width: 0%;"></div>
+
+            <!-- Step 1 Indicator -->
+            <div class="relative z-10 flex flex-col items-center cursor-pointer" onclick="goToStep(1)">
+                <div id="step-node-1" class="w-9 h-9 rounded-full bg-[#C25E38] text-white flex items-center justify-center text-sm font-semibold shadow-sm transition-all">
+                    1
+                </div>
+                <span class="text-[11px] font-medium text-[#1A1715] mt-1.5 hidden sm:block">Roles & Skills</span>
+            </div>
+
+            <!-- Step 2 Indicator -->
+            <div class="relative z-10 flex flex-col items-center cursor-pointer" onclick="goToStep(2)">
+                <div id="step-node-2" class="w-9 h-9 rounded-full bg-[#FAF8F5] text-[#9C948A] border-2 border-[#E6DFD5] flex items-center justify-center text-sm font-semibold transition-all">
+                    2
+                </div>
+                <span class="text-[11px] font-medium text-[#6E675F] mt-1.5 hidden sm:block">Location & Modes</span>
+            </div>
+
+            <!-- Step 3 Indicator -->
+            <div class="relative z-10 flex flex-col items-center cursor-pointer" onclick="goToStep(3)">
+                <div id="step-node-3" class="w-9 h-9 rounded-full bg-[#FAF8F5] text-[#9C948A] border-2 border-[#E6DFD5] flex items-center justify-center text-sm font-semibold transition-all">
+                    3
+                </div>
+                <span class="text-[11px] font-medium text-[#6E675F] mt-1.5 hidden sm:block">Resume & Pay</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Step Form Container -->
+    <form id="onboarding-form" method="POST" action="/onboarding" enctype="multipart/form-data" class="bg-white border border-[#E6DFD5] rounded-2xl p-6 sm:p-8 shadow-sm">
+        
+        <!-- STEP 1: Target Titles & Skills -->
+        <div id="step-1-content" class="space-y-6">
+            <div>
+                <h2 class="text-lg font-semibold text-[#1A1715] flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[#C25E38]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    What roles are you targeting?
+                </h2>
+                <p class="text-xs text-[#6E675F] mt-1">Select or type up to 3 target titles. Being focused gives you 4x higher interview conversion.</p>
+            </div>
+
+            <!-- Full Name -->
+            <div>
+                <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">Full Name <span class="text-red-500">*</span></label>
+                <input type="text" name="full_name" required value="{{ user.full_name or profile.full_name or '' }}" placeholder="e.g. Priyanshu Gupta"
+                    class="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">
+            </div>
+
+            <!-- Target Titles Chip Input (Max 3) -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider">
+                        Target Titles (Max 3) <span class="text-red-500">*</span>
+                    </label>
+                    <span id="title-counter" class="text-xs font-mono font-medium text-[#C25E38]">0 / 3</span>
+                </div>
+                
+                <div class="p-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus-within:ring-2 focus-within:ring-[#C25E38] focus-within:bg-white min-h-[50px] flex flex-wrap gap-2 items-center">
+                    <div id="target-titles-chips" class="flex flex-wrap gap-2"></div>
+                    <input type="text" id="target-title-input" placeholder="Type title and press Enter (e.g. Data Scientist)"
+                        class="bg-transparent border-none outline-none text-sm text-[#1A1715] flex-grow min-w-[200px] px-1 py-0.5">
+                </div>
+                <input type="hidden" name="target_titles" id="target_titles_hidden" value="">
+
+                <!-- Quick Suggested Titles -->
+                <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    <span class="text-[11px] text-[#9C948A]">Popular:</span>
+                    <button type="button" onclick="addTitleTag('Data Scientist')" class="suggested-tag text-xs px-2.5 py-1 bg-[#FAF8F5] hover:bg-[#F5EBE1] hover:text-[#C25E38] border border-[#E6DFD5] rounded-lg text-[#6E675F] transition-all">Data Scientist</button>
+                    <button type="button" onclick="addTitleTag('Machine Learning Engineer')" class="suggested-tag text-xs px-2.5 py-1 bg-[#FAF8F5] hover:bg-[#F5EBE1] hover:text-[#C25E38] border border-[#E6DFD5] rounded-lg text-[#6E675F] transition-all">Machine Learning Engineer</button>
+                    <button type="button" onclick="addTitleTag('Python Backend Developer')" class="suggested-tag text-xs px-2.5 py-1 bg-[#FAF8F5] hover:bg-[#F5EBE1] hover:text-[#C25E38] border border-[#E6DFD5] rounded-lg text-[#6E675F] transition-all">Python Backend Developer</button>
+                    <button type="button" onclick="addTitleTag('AI Engineer')" class="suggested-tag text-xs px-2.5 py-1 bg-[#FAF8F5] hover:bg-[#F5EBE1] hover:text-[#C25E38] border border-[#E6DFD5] rounded-lg text-[#6E675F] transition-all">AI Engineer</button>
+                </div>
+            </div>
+
+            <!-- Primary Skills -->
+            <div>
+                <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                    Core Technical Skills <span class="text-red-500">*</span>
+                </label>
+                <textarea name="skills" required rows="2" placeholder="e.g. Python, SQL, Machine Learning, Deep Learning, FastAPI, PyTorch, Docker, Git"
+                    class="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">{{ profile.skills or '' }}</textarea>
+                <span class="text-[11px] text-[#9C948A]">Comma-separated skills used for AI keyword matching and score calculations.</span>
+            </div>
+
+            <!-- Years of Experience -->
+            <div>
+                <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                    Years of Relevant Experience <span class="text-red-500">*</span>
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" step="0.5" min="0" max="40" name="years_of_experience" required value="{{ profile.years_of_experience or 3.0 }}"
+                        class="w-32 px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">
+                    <span class="text-xs text-[#6E675F]">Years (0 for freshers, 3+ for mid-level)</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-[#E6DFD5]">
+                <button type="button" onclick="validateAndGoStep(2)" class="px-6 py-2.5 bg-[#C25E38] hover:bg-[#B1522D] text-white text-sm font-medium rounded-xl shadow-sm transition-all flex items-center gap-2">
+                    Next: Location Preferences
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 2: Location & Work Modes -->
+        <div id="step-2-content" class="space-y-6 hidden">
+            <div>
+                <h2 class="text-lg font-semibold text-[#1A1715] flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[#C25E38]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Location & Work Arrangement
+                </h2>
+                <p class="text-xs text-[#6E675F] mt-1">Prevent irrelevant jobs (like London onsite for Indian candidates) by setting your geographic rules.</p>
+            </div>
+
+            <!-- Base Country & City -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                        Current Country <span class="text-red-500">*</span>
+                    </label>
+                    <select name="base_country" id="base_country" class="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">
+                        <option value="India" {% if profile.base_country == 'India' or not profile.base_country %}selected{% endif %}>India</option>
+                        <option value="United States" {% if profile.base_country == 'United States' %}selected{% endif %}>United States</option>
+                        <option value="United Kingdom" {% if profile.base_country == 'United Kingdom' %}selected{% endif %}>United Kingdom</option>
+                        <option value="Canada" {% if profile.base_country == 'Canada' %}selected{% endif %}>Canada</option>
+                        <option value="Germany" {% if profile.base_country == 'Germany' %}selected{% endif %}>Germany</option>
+                        <option value="Singapore" {% if profile.base_country == 'Singapore' %}selected{% endif %}>Singapore</option>
+                        <option value="Other" {% if profile.base_country == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                        Current City <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="base_city" required value="{{ profile.base_city or 'Bengaluru' }}" placeholder="e.g. Bengaluru, Hyderabad, London"
+                        class="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">
+                </div>
+            </div>
+
+            <!-- Target Cities (Tag Input) -->
+            <div>
+                <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                    Target Cities for Onsite/Hybrid (Optional)
+                </label>
+                <div class="p-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus-within:ring-2 focus-within:ring-[#C25E38] focus-within:bg-white min-h-[46px] flex flex-wrap gap-2 items-center">
+                    <div id="target-cities-chips" class="flex flex-wrap gap-2"></div>
+                    <input type="text" id="target-city-input" placeholder="Type city and press Enter (e.g. Bengaluru, Pune)"
+                        class="bg-transparent border-none outline-none text-sm text-[#1A1715] flex-grow min-w-[180px] px-1 py-0.5">
+                </div>
+                <input type="hidden" name="target_cities" id="target_cities_hidden" value="">
+                <span class="text-[11px] text-[#9C948A]">Cities where you are open to working locally or hybrid.</span>
+            </div>
+
+            <!-- Work Modes Checkboxes -->
+            <div>
+                <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-2">
+                    Work Arrangement Preferences <span class="text-red-500">*</span>
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label class="flex items-start gap-3 p-3.5 border border-[#E6DFD5] rounded-xl bg-[#FAF8F5] hover:bg-[#F5EBE1] cursor-pointer transition-colors">
+                        <input type="checkbox" name="work_modes" value="remote_worldwide" checked class="mt-1 text-[#C25E38] focus:ring-[#C25E38] rounded">
+                        <div>
+                            <span class="text-xs font-semibold text-[#1A1715] block">🌍 Remote Worldwide</span>
+                            <span class="text-[11px] text-[#6E675F]">Global work-from-anywhere & international contractor (B2B) roles.</span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 p-3.5 border border-[#E6DFD5] rounded-xl bg-[#FAF8F5] hover:bg-[#F5EBE1] cursor-pointer transition-colors">
+                        <input type="checkbox" name="work_modes" value="remote_domestic" checked class="mt-1 text-[#C25E38] focus:ring-[#C25E38] rounded">
+                        <div>
+                            <span class="text-xs font-semibold text-[#1A1715] block">🏠 Domestic Remote</span>
+                            <span class="text-[11px] text-[#6E675F]">Remote roles based anywhere within your home country.</span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 p-3.5 border border-[#E6DFD5] rounded-xl bg-[#FAF8F5] hover:bg-[#F5EBE1] cursor-pointer transition-colors">
+                        <input type="checkbox" name="work_modes" value="hybrid" class="mt-1 text-[#C25E38] focus:ring-[#C25E38] rounded">
+                        <div>
+                            <span class="text-xs font-semibold text-[#1A1715] block">🏢 Hybrid</span>
+                            <span class="text-[11px] text-[#6E675F]">2-3 days in-office in your target cities.</span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 p-3.5 border border-[#E6DFD5] rounded-xl bg-[#FAF8F5] hover:bg-[#F5EBE1] cursor-pointer transition-colors">
+                        <input type="checkbox" name="work_modes" value="onsite" class="mt-1 text-[#C25E38] focus:ring-[#C25E38] rounded">
+                        <div>
+                            <span class="text-xs font-semibold text-[#1A1715] block">📍 Onsite</span>
+                            <span class="text-[11px] text-[#6E675F]">5 days in-office in your target cities.</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Visa & Relocation Toggles -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div class="flex items-center justify-between p-3.5 border border-[#E6DFD5] rounded-xl bg-[#FAF8F5]">
+                    <div>
+                        <span class="text-xs font-semibold text-[#1A1715] block">Need Visa Sponsorship?</span>
+                        <span class="text-[11px] text-[#6E675F]">Filter foreign jobs lacking sponsorship</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="visa_sponsorship_needed" value="true" class="sr-only peer">
+                        <div class="w-11 h-6 bg-[#E6DFD5] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C25E38]"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between p-3.5 border border-[#E6DFD5] rounded-xl bg-[#FAF8F5]">
+                    <div>
+                        <span class="text-xs font-semibold text-[#1A1715] block">Open to Relocation?</span>
+                        <span class="text-[11px] text-[#6E675F]">Consider roles offering relocation packages</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="open_to_relocation" value="true" class="sr-only peer">
+                        <div class="w-11 h-6 bg-[#E6DFD5] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C25E38]"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-[#E6DFD5]">
+                <button type="button" onclick="goToStep(1)" class="px-5 py-2.5 border border-[#E6DFD5] text-[#1A1715] hover:bg-[#FAF8F5] text-sm font-medium rounded-xl transition-all">
+                    Back
+                </button>
+                <button type="button" onclick="validateAndGoStep(3)" class="px-6 py-2.5 bg-[#C25E38] hover:bg-[#B1522D] text-white text-sm font-medium rounded-xl shadow-sm transition-all flex items-center gap-2">
+                    Next: Resume & Final Details
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 3: Resume & Final Details -->
+        <div id="step-3-content" class="space-y-6 hidden">
+            <div>
+                <h2 class="text-lg font-semibold text-[#1A1715] flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[#C25E38]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Master Resume & Logistics
+                </h2>
+                <p class="text-xs text-[#6E675F] mt-1">Upload your resume and state your compensation expectations to complete your setup.</p>
+            </div>
+
+            <!-- Resume Dropzone -->
+            <div>
+                <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                    Master Resume (PDF or DOCX)
+                </label>
+                <div id="dropzone" class="border-2 border-dashed border-[#E6DFD5] rounded-xl p-6 text-center hover:border-[#C25E38] transition-colors bg-[#FAF8F5] cursor-pointer">
+                    <input type="file" name="resume_file" id="resume_file" accept=".pdf,.docx,.doc" class="hidden" onchange="handleFileSelect(this)">
+                    <div id="dropzone-empty">
+                        <svg class="w-10 h-10 text-[#9C948A] mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p class="text-sm font-medium text-[#1A1715]">Click to upload or drag & drop</p>
+                        <p class="text-xs text-[#6E675F] mt-1">PDF or Word (max 10MB)</p>
+                    </div>
+                    <div id="dropzone-file" class="hidden items-center justify-center gap-3">
+                        <svg class="w-8 h-8 text-[#C25E38]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <div class="text-left">
+                            <p id="filename-preview" class="text-sm font-semibold text-[#1A1715]">resume.pdf</p>
+                            <p id="filesize-preview" class="text-xs text-[#6E675F]">1.2 MB</p>
+                        </div>
+                        <button type="button" onclick="removeFile(event)" class="ml-4 text-xs text-red-500 hover:text-red-700 font-medium">Remove</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expected Salary & Notice Period -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                        Expected Compensation
+                    </label>
+                    <input type="text" name="expected_salary" value="{{ profile.expected_salary or 'Competitive / Negotiable' }}" placeholder="e.g. ₹25,00,000 / year or $120,000"
+                        class="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                        Notice Period
+                    </label>
+                    <select name="notice_period" class="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">
+                        <option value="Immediate" {% if profile.notice_period == 'Immediate' %}selected{% endif %}>Immediate (0 days)</option>
+                        <option value="15 Days" {% if profile.notice_period == '15 Days' %}selected{% endif %}>15 Days</option>
+                        <option value="30 Days" {% if profile.notice_period == '30 Days' or not profile.notice_period %}selected{% endif %}>30 Days</option>
+                        <option value="60 Days" {% if profile.notice_period == '60 Days' %}selected{% endif %}>60 Days</option>
+                        <option value="90 Days" {% if profile.notice_period == '90 Days' %}selected{% endif %}>90 Days</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Professional Summary -->
+            <div>
+                <label class="block text-xs font-semibold text-[#1A1715] uppercase tracking-wider mb-1.5">
+                    Professional Summary (2-3 sentences)
+                </label>
+                <textarea name="summary" rows="3" placeholder="Brief elevator pitch highlighting your core achievements and strengths..."
+                    class="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#E6DFD5] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C25E38] focus:bg-white text-sm text-[#1A1715]">{{ profile.summary or '' }}</textarea>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-[#E6DFD5]">
+                <button type="button" onclick="goToStep(2)" class="px-5 py-2.5 border border-[#E6DFD5] text-[#1A1715] hover:bg-[#FAF8F5] text-sm font-medium rounded-xl transition-all">
+                    Back
+                </button>
+                <button type="submit" id="submit-btn" class="px-8 py-3 bg-[#C25E38] hover:bg-[#B1522D] text-white text-sm font-semibold rounded-xl shadow-md transition-all flex items-center gap-2">
+                    <span>Complete Onboarding & Find Jobs</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // State management for chips
+    let targetTitles = [];
+    let targetCities = [];
+
+    // Initialize existing titles if any
+    const existingTitlesStr = "{{ profile.target_titles or '' }}";
+    if (existingTitlesStr) {
+        existingTitlesStr.split(',').map(s => s.trim()).filter(Boolean).forEach(t => {
+            if (targetTitles.length < 3 && !targetTitles.includes(t)) {
+                targetTitles.push(t);
+            }
+        });
+    }
+    renderTitleChips();
+
+    // STEP NAVIGATION
+    function goToStep(stepNum) {
+        // Toggle view
+        document.getElementById('step-1-content').classList.toggle('hidden', stepNum !== 1);
+        document.getElementById('step-2-content').classList.toggle('hidden', stepNum !== 2);
+        document.getElementById('step-3-content').classList.toggle('hidden', stepNum !== 3);
+
+        // Progress bar width
+        const progressWidth = stepNum === 1 ? '0%' : (stepNum === 2 ? '50%' : '100%');
+        document.getElementById('step-progress-bar').style.width = progressWidth;
+
+        // Node indicators
+        for (let i = 1; i <= 3; i++) {
+            const node = document.getElementById(`step-node-${i}`);
+            if (i <= stepNum) {
+                node.className = "w-9 h-9 rounded-full bg-[#C25E38] text-white flex items-center justify-center text-sm font-semibold shadow-sm transition-all";
+            } else {
+                node.className = "w-9 h-9 rounded-full bg-[#FAF8F5] text-[#9C948A] border-2 border-[#E6DFD5] flex items-center justify-center text-sm font-semibold transition-all";
+            }
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function validateAndGoStep(targetStep) {
+        if (targetStep === 2) {
+            if (targetTitles.length === 0) {
+                alert("Please add at least 1 target job title (max 3).");
+                return;
+            }
+            const nameInput = document.querySelector('input[name="full_name"]');
+            if (!nameInput.value.trim()) {
+                alert("Please enter your full name.");
+                nameInput.focus();
+                return;
+            }
+        }
+        if (targetStep === 3) {
+            const checkedModes = document.querySelectorAll('input[name="work_modes"]:checked');
+            if (checkedModes.length === 0) {
+                alert("Please select at least one work arrangement mode.");
+                return;
+            }
+        }
+        goToStep(targetStep);
+    }
+
+    // TARGET TITLES (MAX 3)
+    const titleInput = document.getElementById('target-title-input');
+    titleInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTitleTag(this.value.trim());
+            this.value = '';
+        }
+    });
+
+    function addTitleTag(title) {
+        if (!title) return;
+        if (targetTitles.length >= 3) {
+            alert("Maximum 3 target titles allowed for optimal matching focus.");
+            return;
+        }
+        if (!targetTitles.includes(title)) {
+            targetTitles.push(title);
+            renderTitleChips();
+        }
+    }
+
+    function removeTitleTag(index) {
+        targetTitles.splice(index, 1);
+        renderTitleChips();
+    }
+
+    function renderTitleChips() {
+        const container = document.getElementById('target-titles-chips');
+        container.innerHTML = '';
+        targetTitles.forEach((title, idx) => {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[#F5EBE1] text-[#C25E38] border border-[#E6DFD5]';
+            chip.innerHTML = `${title} <button type="button" onclick="removeTitleTag(${idx})" class="hover:text-red-700 ml-1 font-bold">&times;</button>`;
+            container.appendChild(chip);
+        });
+
+        document.getElementById('title-counter').innerText = `${targetTitles.length} / 3`;
+        document.getElementById('target_titles_hidden').value = targetTitles.join(', ');
+
+        // Disable input when 3 titles are reached
+        if (targetTitles.length >= 3) {
+            titleInput.placeholder = "Max 3 titles reached (remove one to change)";
+            titleInput.disabled = true;
+        } else {
+            titleInput.placeholder = "Type title and press Enter (e.g. Data Scientist)";
+            titleInput.disabled = false;
+        }
+    }
+
+    // TARGET CITIES
+    const cityInput = document.getElementById('target-city-input');
+    cityInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const val = this.value.trim();
+            if (val && !targetCities.includes(val)) {
+                targetCities.push(val);
+                renderCityChips();
+            }
+            this.value = '';
+        }
+    });
+
+    function removeCityTag(index) {
+        targetCities.splice(index, 1);
+        renderCityChips();
+    }
+
+    function renderCityChips() {
+        const container = document.getElementById('target-cities-chips');
+        container.innerHTML = '';
+        targetCities.forEach((city, idx) => {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[#FAF8F5] text-[#1A1715] border border-[#E6DFD5]';
+            chip.innerHTML = `${city} <button type="button" onclick="removeCityTag(${idx})" class="hover:text-red-700 ml-1 font-bold">&times;</button>`;
+            container.appendChild(chip);
+        });
+        document.getElementById('target_cities_hidden').value = targetCities.join(', ');
+    }
+
+    // RESUME DRAG & DROP
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('resume_file');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-[#C25E38]', 'bg-[#F5EBE1]');
+    });
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('border-[#C25E38]', 'bg-[#F5EBE1]');
+    });
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-[#C25E38]', 'bg-[#F5EBE1]');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(fileInput);
+        }
+    });
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            document.getElementById('filename-preview').innerText = file.name;
+            document.getElementById('filesize-preview').innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            document.getElementById('dropzone-empty').classList.add('hidden');
+            document.getElementById('dropzone-file').classList.remove('hidden');
+            document.getElementById('dropzone-file').classList.add('flex');
+        }
+    }
+
+    function removeFile(event) {
+        event.stopPropagation();
+        fileInput.value = '';
+        document.getElementById('dropzone-file').classList.add('hidden');
+        document.getElementById('dropzone-file').classList.remove('flex');
+        document.getElementById('dropzone-empty').classList.remove('hidden');
+    }
+</script>
+{% endblock %}

@@ -85,3 +85,66 @@ def test_layer3_llm_structured_parsing(service):
     assert verdict.confidence == 0.92
     assert verdict.requires_human_look is False
 
+def test_deliveroo_london_ineligible_for_india_candidate(service):
+    """
+    Verifies Deliveroo London (onsite UK role) is strictly INELIGIBLE
+    for an Indian candidate who is remote-only or lacks UK visa sponsorship.
+    """
+    india_candidate = {
+        "base_country": "India",
+        "base_city": "Bengaluru",
+        "target_cities": ["Bengaluru", "Hyderabad"],
+        "work_modes": ["remote_worldwide", "remote_domestic"],
+        "visa_sponsorship_needed": False,
+        "open_to_relocation": False
+    }
+
+    deliveroo_jd = """
+    We're now looking for a Backend Engineer (Golang) to join us in building scalable,
+    low-latency systems that power these tools and shape the future of customer support.
+    3+ years of professional software engineering experience.
+    """
+
+    verdict = service.evaluate_deterministic(
+        title="Software Engineer",
+        location="London, England, United Kingdom",
+        description=deliveroo_jd,
+        is_remote=False,
+        candidate_profile=india_candidate
+    )
+
+    assert verdict is not None
+    assert verdict.status == EligibilityStatus.INELIGIBLE
+    assert "outside candidate's base location" in verdict.reason.lower()
+
+def test_deliveroo_london_eligible_for_uk_candidate(service):
+    """
+    Verifies that the exact same Deliveroo London role IS ELIGIBLE
+    for a UK-based candidate.
+    """
+    uk_candidate = {
+        "base_country": "United Kingdom",
+        "base_city": "London",
+        "target_cities": ["London"],
+        "work_modes": ["hybrid", "onsite"],
+        "visa_sponsorship_needed": False,
+        "open_to_relocation": False
+    }
+
+    deliveroo_jd = """
+    We're now looking for a Backend Engineer (Golang) to join us in building scalable,
+    low-latency systems that power these tools.
+    """
+
+    verdict = service.evaluate_deterministic(
+        title="Software Engineer",
+        location="London, England, United Kingdom",
+        description=deliveroo_jd,
+        is_remote=False,
+        candidate_profile=uk_candidate
+    )
+
+    assert verdict is not None
+    assert verdict.status == EligibilityStatus.ELIGIBLE
+    assert "matches candidate's target preferences" in verdict.reason.lower()
+
