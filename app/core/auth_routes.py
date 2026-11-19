@@ -195,12 +195,32 @@ async def google_auth_initiate(request: Request):
             ],
             redirect_uri=callback_url
         )
-        auth_url, _ = flow.authorization_url(
+        auth_url, state = flow.authorization_url(
             access_type="offline",
             include_granted_scopes="true",
             prompt="select_account"
         )
-        return RedirectResponse(url=auth_url)
+        response = RedirectResponse(url=auth_url)
+        # Store PKCE code_verifier and state in temporary HttpOnly cookies
+        if flow.code_verifier:
+            response.set_cookie(
+                key="oauth_code_verifier",
+                value=flow.code_verifier,
+                httponly=True,
+                max_age=600,
+                samesite="lax",
+                secure=False
+            )
+        if state:
+            response.set_cookie(
+                key="oauth_state",
+                value=state,
+                httponly=True,
+                max_age=600,
+                samesite="lax",
+                secure=False
+            )
+        return response
     except Exception as e:
         logger.error(f"Error initiating Google OAuth flow: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to initiate Google Sign-In: {e}")
@@ -211,6 +231,7 @@ async def google_auth_callback(
     request: Request,
     code: Optional[str] = None,
     error: Optional[str] = None,
+    state: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Handles Google OAuth2 callback, provisions user, and issues JWT session cookie."""
@@ -228,6 +249,7 @@ async def google_auth_callback(
 
         base_url = str(request.base_url).rstrip("/")
         callback_url = f"{base_url}/api/auth/google/callback"
+        cookie_state = request.cookies.get("oauth_state") or state
 
         flow = Flow.from_client_config(
             config,
@@ -236,8 +258,15 @@ async def google_auth_callback(
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile"
             ],
-            redirect_uri=callback_url
+            redirect_uri=callback_url,
+            state=cookie_state
         )
+
+        # Restore PKCE code_verifier from initiation turn
+        code_verifier = request.cookies.get("oauth_code_verifier")
+        if code_verifier:
+            flow.code_verifier = code_verifier
+
         flow.fetch_token(code=code)
         credentials = flow.credentials
 
@@ -292,8 +321,13 @@ async def google_auth_callback(
         token = create_access_token(data={"sub": str(user.id), "email": user.email})
         response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
         set_auth_cookie(response, token)
+        response.delete_cookie("oauth_code_verifier")
+        response.delete_cookie("oauth_state")
         return response
 
     except Exception as e:
         logger.error(f"Error handling Google OAuth callback: {e}")
-        return RedirectResponse(url=f"/?auth_error={str(e)}")
+        err_resp = RedirectResponse(url=f"/?auth_error={str(e)}")
+        err_resp.delete_cookie("oauth_code_verifier")
+        err_resp.delete_cookie("oauth_state")
+        return err_resp

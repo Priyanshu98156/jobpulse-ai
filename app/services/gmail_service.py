@@ -79,11 +79,11 @@ class GmailReaderService:
         except Exception:
             return "Connected"
 
-    def generate_authorization_url(self, redirect_uri: str) -> Optional[str]:
-        """Generates Google OAuth2 consent URL using client_secret from vault."""
+    def generate_authorization_url(self, redirect_uri: str) -> tuple[Optional[str], Optional[str]]:
+        """Generates Google OAuth2 consent URL and PKCE code_verifier."""
         config = self.get_client_config()
         if not config:
-            return None
+            return None, None
         from google_auth_oauthlib.flow import Flow
         flow = Flow.from_client_config(
             config,
@@ -95,9 +95,9 @@ class GmailReaderService:
             include_granted_scopes='true',
             prompt='consent'
         )
-        return auth_url
+        return auth_url, flow.code_verifier
 
-    def complete_oauth_callback(self, code: str, redirect_uri: str) -> bool:
+    def complete_oauth_callback(self, code: str, redirect_uri: str, code_verifier: Optional[str] = None) -> bool:
         """Exchanges auth code for tokens and persists into OS Keyring."""
         config = self.get_client_config()
         if not config:
@@ -110,6 +110,8 @@ class GmailReaderService:
                 scopes=SCOPES,
                 redirect_uri=redirect_uri
             )
+            if code_verifier:
+                flow.code_verifier = code_verifier
             flow.fetch_token(code=code)
             creds = flow.credentials
             

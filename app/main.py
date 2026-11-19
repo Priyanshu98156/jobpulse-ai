@@ -649,10 +649,20 @@ from app.services.gmail_service import gmail_reader_service
 async def gmail_connect(request: Request):
     """Initiates Google OAuth2 consent flow for Gmail read-only access."""
     redirect_uri = f"{request.base_url}api/gmail/callback"
-    auth_url = gmail_reader_service.generate_authorization_url(redirect_uri)
+    auth_url, code_verifier = gmail_reader_service.generate_authorization_url(redirect_uri)
     if not auth_url:
         return RedirectResponse(url="/settings?error=Google+OAuth+client_secret+not+found+in+vault", status_code=303)
-    return RedirectResponse(url=auth_url, status_code=303)
+    response = RedirectResponse(url=auth_url, status_code=303)
+    if code_verifier:
+        response.set_cookie(
+            key="gmail_code_verifier",
+            value=code_verifier,
+            httponly=True,
+            max_age=600,
+            samesite="lax",
+            secure=False
+        )
+    return response
 
 @app.get("/api/gmail/callback")
 async def gmail_callback(request: Request, code: Optional[str] = None, error: Optional[str] = None):
@@ -661,11 +671,14 @@ async def gmail_callback(request: Request, code: Optional[str] = None, error: Op
         return RedirectResponse(url=f"/settings?error={error or 'Authorization+failed'}", status_code=303)
 
     redirect_uri = f"{request.base_url}api/gmail/callback"
-    success = gmail_reader_service.complete_oauth_callback(code, redirect_uri)
+    code_verifier = request.cookies.get("gmail_code_verifier")
+    success = gmail_reader_service.complete_oauth_callback(code, redirect_uri, code_verifier=code_verifier)
     if success:
-        return RedirectResponse(url="/settings?message=Gmail+connected+successfully+for+automated+login+and+OTP+verification!", status_code=303)
+        resp = RedirectResponse(url="/settings?message=Gmail+connected+successfully+for+automated+login+and+OTP+verification!", status_code=303)
     else:
-        return RedirectResponse(url="/settings?error=Failed+to+exchange+OAuth+token", status_code=303)
+        resp = RedirectResponse(url="/settings?error=Failed+to+exchange+OAuth+token", status_code=303)
+    resp.delete_cookie("gmail_code_verifier")
+    return resp
 
 @app.post("/api/gmail/disconnect")
 async def gmail_disconnect():
